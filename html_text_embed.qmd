@@ -1,0 +1,145 @@
+---
+title: "html_text"
+format: 
+  html:
+    toc: true
+    toc-location: left
+editor: visual
+---
+
+# Background
+
+As part of the Demo sales App, we'd love to have a tweet wall/embedded text centre to look more professional, where the tweets are [masonified](https://www.smashingmagazine.com/native-css-masonry-layout-css-grid/). Which could nowadays be done with `bslib::layout_column_wrap()
+`
+
+e.g. [Gaden Buie's Conference App](https://gadenbuie.shinyapps.io/tweet-conf-dash/) would compliment the landscape nicely.
+
+These functions do the work:
+```{r, eval = FALSE}
+get_tweet_blockquote <- function(screen_name, status_id, ..., null_on_error = TRUE, theme = "light") {
+  oembed <- list(...)$oembed
+  if (!is.null(oembed) && !is.na(oembed)) return(unlist(oembed))
+  oembed_url <- glue::glue("https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}&omit_script=1&dnt=1&theme={theme}")
+  bq <- possibly(httr::GET, list(status_code = 999))(URLencode(oembed_url))
+  if (bq$status_code >= 400) {
+    if (null_on_error) return(NULL)
+    '<blockquote style="font-size: 90%">Sorry, unable to get tweet ¯\\_(ツ)_/¯</blockquote>'
+  } else {
+    httr::content(bq, "parsed")$html
+  }
+}
+```
+
+```{r}
+masonify_tweets <- function(tweets, id = NULL, class = NULL) {
+  stopifnot("status_id" %in% names(tweets))
+
+  t_embed <-
+    tweets %>%
+    pmap(get_tweet_blockquote) %>%
+    map(HTML) %>%
+    map(tags$div, class = "tweet-item")
+
+  tagList(
+    tags$div(id = id,
+             class = paste("masonry text-left", class),
+             t_embed
+    )
+  )
+}
+```
+
+
+Question of whether this should be top posts (by likes, engagements?), top by cosine/x to some query?
+
+
+[Embedding via reddit](https://www.reddit.com/wiki/embeds/)
+
+<blockquote class="reddit-embed-bq" style="height:316px" data-embed-height="597"><a href="https://www.reddit.com/r/redditdev/comments/16tqlth/updating_api_user_setting_fields/">Updating API user setting fields</a><br> by<a href="https://www.reddit.com/user/pl00h/">u/pl00h</a> in<a href="https://www.reddit.com/r/redditdev/">redditdev</a></blockquote><script async="" src="https://embed.reddit.com/widgets.js" charset="UTF-8"></script>
+
+Need to paste in the user and the id
+
+# Reddit
+
+```{r}
+shiny::HTML('<blockquote class="reddit-embed-bq" style="height:316px" data-embed-height="597"><a href="https://www.reddit.com/r/redditdev/comments/16tqlth/updating_api_user_setting_fields/">Updating API user setting fields</a><br> by<a href="https://www.reddit.com/user/pl00h/">u/pl00h</a> in<a href="https://www.reddit.com/r/redditdev/">redditdev</a></blockquote><script async="" src="https://embed.reddit.com/widgets.js" charset="UTF-8"></script>')
+```
+
+This works:
+```{r}
+library(shiny)
+
+ui <- fluidPage(
+  shiny::HTML('<blockquote class="reddit-embed-bq" style="height:316px" data-embed-height="597"><a href="https://www.reddit.com/r/redditdev/comments/16tqlth/updating_api_user_setting_fields/">Updating API user setting fields</a><br> by<a href="https://www.reddit.com/user/pl00h/">u/pl00h</a> in<a href="https://www.reddit.com/r/redditdev/">redditdev</a></blockquote><script async="" src="https://embed.reddit.com/widgets.js" charset="UTF-8"></script>')
+)
+
+server <- function(input, output, session){
+  
+}
+
+shinyApp(ui, server)
+```
+
+To map an arbitrary number to 3  per row:
+```{r}
+library(shiny)
+library(bslib)
+
+.tmp <- shiny::HTML('<blockquote class="reddit-embed-bq" style="height:316px" data-embed-height="597"><a href="https://www.reddit.com/r/redditdev/comments/16tqlth/updating_api_user_setting_fields/">Updating API user setting fields</a><br> by<a href="https://www.reddit.com/user/pl00h/">u/pl00h</a> in<a href="https://www.reddit.com/r/redditdev/">redditdev</a></blockquote><script async="" src="https://embed.reddit.com/widgets.js" charset="UTF-8"></script>')
+
+?bslib::layout_column_wrap
+bslib::layout_column_wrap(1/3, .tmp, .tmp, .tmp, .tmp, .tmp, .tmp)
+```
+
+```{r}
+library(shiny)
+library(bslib)
+library(htmltools)
+
+# Function to create HTML for a Reddit embed
+create_reddit_embed <- function(url, user, subreddit) {
+  html <- paste0('<blockquote class="reddit-embed-bq" style="height:316px" data-embed-height="597"><a href="',
+                 url, '">Link to post</a><br> by<a href="https://www.reddit.com/user/',
+                 user, '">u/', user, '</a> in<a href="https://www.reddit.com/r/', subreddit, '">',
+                 subreddit, '</a></blockquote><script async="" src="https://embed.reddit.com/widgets.js" charset="UTF-8"></script>')
+  HTML(html)
+}
+# Define UI
+ui <- fluidPage(
+  bslib::layout_column_wrap(
+    width = 1/3,  # Defines three columns on larger screens
+    # Dynamically generate the content
+    lapply(1:6, function(i) {
+      create_reddit_embed("https://www.reddit.com/r/redditdev/comments/16tqlth/updating_api_user_setting_fields/",
+                          paste0("pl00h", i), "redditdev")
+    })
+  )
+)
+
+# Define server logic
+server <- function(input, output, session) {}
+
+# Run the application
+shinyApp(ui, server)
+```
+
+# Instagram
+
+[Instagram Embed API Terms of Service](https://developers.facebook.com/terms)
+
+```{r}
+.tmp_insta <- HTML('<blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/p/C6z8MZetvvn/?utm_source=ig_web_copy_link/" data-instgrm-version="12" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.1); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%; width:-webkit-calc(100% - 2px); width:calc(100% - 2px);">
+      <div style="padding:16px;">
+      </div>
+    </blockquote>
+    <script async defer src="//www.instagram.com/embed.js"></script>
+  ')
+
+bslib::layout_column_wrap(1/3, .tmp_insta, .tmp_insta, .tmp_insta)
+```
+
+
+```{r}
+
+```
+

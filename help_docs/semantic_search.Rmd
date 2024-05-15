@@ -20,6 +20,7 @@ library(BertopicR)
 library(tidyverse)
 library(plotly)
 library(viridis)
+library(tidytext)
 ```
 
 ## Load data
@@ -192,7 +193,7 @@ top_posts_cosine_similarity(reference_statement = "AI art is bad",
   DT::datatable()
 ```
 
-## Perform semantic similarity on top 20 sentences
+## Perform semantic similarity on top 50 sentences
 ```{r}
 doc_id <- top_posts_cosine_similarity(reference_statements = "AI art is bad", 
                             embedding_model = msmarco_embedder, 
@@ -379,6 +380,8 @@ server <- function(input, output) {
     topic_colours <- setNames(adjusted_colours_lighter_0.5, unique(example$topic))
     example <- example %>%
       mutate(colour_mapped = if_else(new_colour == "#cccccc", "#cccccc", topic_colours[new_colour]))
+    
+
     
     insert_line_breaks <- function(text, n = 10) {
       words <- strsplit(text, " ")[[1]]
@@ -668,4 +671,237 @@ bm25_results <- bm25_keyword_search(reference_sentence = reference_sentence,
 
 bm25_results %>% DT::datatable()
 ```
+
+## Workflow with documents split by sentences
+
+```{r}
+example_sentences <- example %>% 
+  unnest_tokens(output = sentence,
+                input = text_copy, 
+                token = "sentences",
+                drop = F,
+                to_lower = F)
+
+example_sentences %>% 
+  write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/displayr_example_sentences.csv")
+
+multi_qa_embedder <- bt_make_embedder_st(
+  model = "multi-qa-mpnet-base-cos-v1"
+  )
+
+multi_qa_embeddings_sentences <- bt_do_embedding(multi_qa_embedder, example_sentences$sentence)
+
+# multi_qa_embeddings_sentences <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings_sentences.csv")
+
+multi_qa_matrix_sentences <- multi_qa_embeddings_sentences %>%
+  as.matrix()
+
+cosine_calculation_threshold_sentence <- function(reference_statement,
+                                        cosine_sim_threshold = 0.5,
+                                        embedding_model,
+                                        sentence_matrix,
+                                        df) {
+    # Initialize an empty data frame to store the results
+    combined_sentence_candidates <- data.frame()
+      
+      ref_sentence <- reference_statement
+      
+      cosine_sim_threshold <- cosine_sim_threshold
+      
+      reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
+      
+      sentence_dot_products <- sentence_matrix %*% reference_vector
+      
+      sentence_norm_matrix <- sqrt(rowSums(sentence_matrix ^ 2))
+      
+      reference_norm <- sqrt(sum(reference_vector ^ 2))
+      
+      sentence_cosine_sims <- sentence_dot_products / (sentence_norm_matrix * reference_norm)
+      
+      # Create a data frame for the current reference sentence
+      current_sentence_candidates <- df %>%
+        mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
+        relocate(cosine_sim) %>%
+        filter(cosine_sim > cosine_sim_threshold) %>%
+        arrange(desc(cosine_sim)) 
+
+    return(current_sentence_candidates)
+    
+  }
+
+## Function 1
+cosine_calculation_threshold_sentence(reference_statement = "ai", 
+                             cosine_sim_threshold = 0.5, 
+                             embedding_model = multi_qa_embedder, 
+                             sentence_matrix = multi_qa_matrix_sentences, 
+                             df = example_sentences) %>%
+  group_by(document) %>%
+  summarise(
+    text_copy = first(text_copy),
+    sentences = list(sentence)
+  ) %>%
+  mutate(test_text = mapply(highlight_sentences, text_copy, sentences)) %>%
+  right_join(example_sentences, by = "document") %>%
+  select(text_copy = text_copy.x, sentence, document, test_text)
+```
+
+#### Shiny app
+
+In this version of the shiny app POC, the sentences of each post that are relevant are in **bold**
+
+```{r}
+library(shiny)
+library(dplyr)
+library(plotly)
+library(viridis)
+library(purrr)
+library(stringr)
+
+ui <- fluidPage(
+  titlePanel("Semantic Search UMAP Plot"),
+  sidebarLayout(
+    sidebarPanel(
+      textInput("search_term", "Enter search term:", value = "AI art"),
+      numericInput("cosine_sim_thresholds", "Cosine similarity threshold", value = 0.5, min = 0, max = 1),
+      actionButton("update_plot", "Update Plot")
+    ),
+    mainPanel(
+      plotlyOutput("umap_plot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  cosine_calculation_threshold_sentence <- function(reference_statement,
+                                                    cosine_sim_threshold = 0.5,
+                                                    embedding_model,
+                                                    sentence_matrix,
+                                                    df) {
+    ref_sentence <- reference_statement
+    reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
+    sentence_dot_products <- sentence_matrix %*% reference_vector
+    sentence_norm_matrix <- sqrt(rowSums(sentence_matrix ^ 2))
+    reference_norm <- sqrt(sum(reference_vector ^ 2))
+    sentence_cosine_sims <- sentence_dot_products / (sentence_norm_matrix * reference_norm)
+    current_sentence_candidates <- df %>%
+      mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
+      relocate(cosine_sim) %>%
+      filter(cosine_sim > cosine_sim_threshold) %>%
+      arrange(desc(cosine_sim))
+    return(current_sentence_candidates)
+  }
+  
+  highlight_sentences <- function(text, sentences) {
+    sentences <- unique(sentences)
+    for (sentence in sentences) {
+      highlighted_sentence <- paste0("<b>", sentence, "</b>")
+      text <- str_replace_all(text, fixed(sentence), highlighted_sentence)
+    }
+    return(text)
+  }
+
+  insert_line_breaks <- function(text, n = 10) {
+    words <- strsplit(text, " ")[[1]]
+    paste(sapply(seq(1, length(words), n), function(i) {
+      paste(words[i:min(i + n - 1, length(words))], collapse = " ")
+    }), collapse = "<br>")
+  }
+  
+  observeEvent(input$update_plot, {
+    search_term <- input$search_term
+    cosine_threshold <- input$cosine_sim_thresholds
+    doc_id <- cosine_calculation_threshold_sentence(reference_statement = search_term,
+                                                    cosine_sim_threshold = cosine_threshold,
+                                                    embedding_model = multi_qa_embedder,
+                                                    sentence_matrix = multi_qa_matrix_sentences,
+                                                    df = example_sentences)
+    
+    example_sentences_2 <- doc_id %>%
+      group_by(document) %>%
+      mutate(
+        sentences = list(sentence),
+        text_copy = first(text_copy)
+      ) %>%
+      ungroup() %>%
+      mutate(test_text = map2_chr(text_copy, sentences, highlight_sentences)) %>%
+      distinct(document, .keep_all = TRUE) %>% 
+      right_join(example_sentences) %>%
+      mutate(new_colour = if_else(document %in% doc_id$document, as.character(topic), "#cccccc")) %>%
+      distinct(document, .keep_all = TRUE) %>% 
+      mutate(test_text = case_when(
+        is.na(cosine_sim) ~ text_copy,
+        TRUE ~ test_text
+      ))
+    
+    k <- n_distinct(example_sentences_2$topic)
+    
+    eg_colours <- viridis::viridis(k)
+    
+    adjusted_colours_lighter_0.5 <- map_chr(eg_colours, ~adjust_colour_lighter(.x, og_val = 0.5))
+    
+    adjusted_colours_darker_0.8 <- map_chr(eg_colours, ~adjust_colour_darker(.x, og_val = 0.8))
+    
+    topic_colours <- setNames(adjusted_colours_lighter_0.5, unique(example_sentences_2 $topic))
+    
+    example <- example_sentences_2  %>%
+      mutate(colour_mapped = if_else(new_colour == "#cccccc", "#cccccc", topic_colours[new_colour])) %>%
+      mutate(text_with_breaks = sapply(test_text, insert_line_breaks))
+    
+    grey_points <- example %>% filter(new_colour == "#cccccc") %>% mutate(opacity = 0.2)
+    highlight_points <- example %>% filter(new_colour != "#cccccc") %>% mutate(opacity = 1)
+    
+    p <- plot_ly() %>%
+      add_trace(data = grey_points,
+                x = ~V1, y = ~V2,
+                type = 'scattergl',
+                mode = 'markers',
+                marker = list(color = ~colour_mapped, opacity = ~opacity),
+                hoverinfo = "text",
+                text = ~text_with_breaks) %>%
+      add_trace(data = highlight_points,
+                x = ~V1, y = ~V2,
+                type = 'scattergl',
+                mode = 'markers',
+                marker = list(color = ~colour_mapped, opacity = ~opacity, size = 10),
+                hoverinfo = "text",
+                text = ~text_with_breaks) %>%
+      config(scrollZoom = TRUE) %>%
+      layout(
+        showlegend = FALSE,
+        xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+        yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+        plot_bgcolor = 'rgba(0, 0, 0, 0)',
+        paper_bgcolor = 'rgba(0, 0, 0, 0)'
+      )
+    
+    eg_cluster_lookup <- example %>%
+      group_by(topic) %>%
+      summarise(topic_number = cur_group_id(),
+                label = first(topic),
+                centroid_x = mean(V1),
+                centroid_y = mean(V2))
+    
+    pp <- p
+    for (i in 1:nrow(eg_cluster_lookup)) {
+      pp <- pp %>%
+        add_annotations(x = eg_cluster_lookup$centroid_x[i], y = eg_cluster_lookup$centroid_y[i],
+                        text = eg_cluster_lookup$label[i],
+                        showarrow = FALSE,
+                        bgcolor = "white",
+                        opacity = 0.2,
+                        font = list(size = 24, family = "Helvetica", color = "white")) %>%
+        add_annotations(x = eg_cluster_lookup$centroid_x[i], y = eg_cluster_lookup$centroid_y[i],
+                        text = eg_cluster_lookup$label[i],
+                        showarrow = FALSE,
+                        font = list(size = 24, family = "Helvetica", color = adjusted_colours_darker_0.8[as.numeric(eg_cluster_lookup$topic_number[i])]))
+    }
+    
+    output$umap_plot <- renderPlotly({ pp })
+  })
+}
+
+shinyApp(ui, server)
+```
+
 

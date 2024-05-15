@@ -359,6 +359,30 @@ server <- function(input, output) {
     
   }
   
+  adjust_colour_lighter <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
+  
+  rgb_new <- pmin(rgb_new, 255)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
+
+adjust_colour_darker <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val
+  
+  rgb_new <- pmax(rgb_new, 0)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
+  
   observeEvent(input$update_plot, {
     search_term <- input$search_term
     cosine_threshold <- input$cosine_sim_thresholds
@@ -509,6 +533,30 @@ server <- function(input, output) {
     
     return(combined_sentence_candidates)
   }
+  
+  adjust_colour_lighter <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
+  
+  rgb_new <- pmin(rgb_new, 255)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
+
+adjust_colour_darker <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val
+  
+  rgb_new <- pmax(rgb_new, 0)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
   
   observeEvent(input$update_plot, {
     search_term <- input$search_term
@@ -730,7 +778,7 @@ cosine_calculation_threshold_sentence <- function(reference_statement,
   }
 
 ## Function 1
-cosine_calculation_threshold_sentence(reference_statement = "ai", 
+cosine_calculation_threshold_sentence(reference_statement = "the terminator", 
                              cosine_sim_threshold = 0.5, 
                              embedding_model = multi_qa_embedder, 
                              sentence_matrix = multi_qa_matrix_sentences, 
@@ -807,6 +855,30 @@ server <- function(input, output) {
       paste(words[i:min(i + n - 1, length(words))], collapse = " ")
     }), collapse = "<br>")
   }
+  
+  adjust_colour_lighter <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
+  
+  rgb_new <- pmin(rgb_new, 255)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
+
+adjust_colour_darker <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val
+  
+  rgb_new <- pmax(rgb_new, 0)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
   
   observeEvent(input$update_plot, {
     search_term <- input$search_term

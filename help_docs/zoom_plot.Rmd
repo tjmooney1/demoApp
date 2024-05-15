@@ -1,0 +1,371 @@
+---
+title: "plotly_experimentation"
+author: "Jamie Hudson"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Intro
+
+This script aims to experiment with plotly aesthetics to get them to match as closely to `datamapplot` as possible- without potentially the fancy labels that we get with `datamapplot.`
+
+## Load packages
+
+```{r}
+library(tidyverse)
+library(plotly)
+library(grDevices)
+library(RColorBrewer)
+```
+
+#### functions
+
+```{r}
+# Function to adjust colours
+adjust_colour_lighter <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
+  
+  rgb_new <- pmin(rgb_new, 255)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
+
+adjust_colour_darker <- function(colour_hex, og_val) {
+
+  rgb_vals <- col2rgb(colour_hex)
+  
+  rgb_new <- rgb_vals * og_val
+  
+  rgb_new <- pmax(rgb_new, 0)
+  
+  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_colour_hex)
+}
+```
+
+
+## Dummy data
+
+```{r}
+set.seed(1234)
+
+n = 10000
+data <- tibble(
+  x = rnorm(10000, mean = 4, sd = 1), 
+  y = rnorm(10000, mean = 4.5, sd =1.2))
+
+k <- 5
+clusters <- kmeans(data, centers = k)
+
+data <- data %>% 
+  mutate(cluster = factor(clusters$cluster))
+
+centroids <- as.data.frame(clusters$centers)
+
+## obtain colour palette used
+colours <- brewer.pal(n = k, name = "Set1")
+
+## adjust colours to be lighter (same as changing alpha, but keeping opacity)
+adjusted_colours_lighter_0.5 <- map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.5)) ## for points 
+adjusted_colours_lighter_0.2 <- map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.2)) ## for shadow 
+adjusted_colours_darker_0.8 <- map_chr(colours, ~adjust_colour_darker(.x, og_val = 0.8)) ## for labels
+
+
+adjusted_colours_lighter_0.6 <- map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points 
+adjusted_colours_lighter_0.05 <- map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05)) 
+adjusted_colours_darker_1 <- map_chr(colours, ~adjust_colour_darker(.x, og_val = 1)) ## for labels
+```
+
+plotting with bold shadow
+```{r}
+
+(p <- plot_ly(data, 
+             x = ~x, y
+             = ~y, 
+             type = 'scattergl', 
+             mode = 'markers',
+             color = ~cluster, 
+             opacity = 0.5,
+             colors = adjusted_colours_lighter_0.5,
+             hoverinfo = "none") %>% 
+  config(scrollZoom = TRUE) %>% 
+  layout(
+    showlegend = FALSE,
+    xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE,
+                 title = ""),
+    yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE,
+                 title = ""),
+    plot_bgcolor = 'rgba(0, 0, 0, 0)',
+    paper_bgcolor = 'rgba(0, 0, 0, 0)'
+  )
+)
+
+p
+
+cluster_lookup <- tibble(
+  cluster = c(1, 2, 3, 4, 5),
+  label = c("Antivax", "Hoax", "Pfizer", "Covid", "Virus"),
+  centroid_x = centroids$x,
+  centroid_y = centroids$y
+)
+
+### with shitty background
+pp <- p
+for (i in 1:nrow(cluster_lookup)) {
+  pp <- pp %>%
+    add_annotations(x = cluster_lookup$centroid_x[i], y = cluster_lookup$centroid_y[i],
+                             text = cluster_lookup$label[i],
+                             showarrow = FALSE,
+                             bgcolor="white",
+                             opacity=0.2,
+                             font = list(size = 24, family = "Helvetica", color = "white")) %>%
+    add_annotations(x = cluster_lookup$centroid_x[i], y = cluster_lookup$centroid_y[i],
+                             text = cluster_lookup$label[i],
+                             showarrow = FALSE,
+                             # bgcolor="black",
+                             # opacity=0.1,
+                             font = list(size = 24, family = "Helvetica", color = adjusted_colours_darker_0.8[as.numeric(cluster_lookup$cluster[i])]))
+}
+
+pp
+
+pp2 <- p
+# Add shadowed annotations
+for (i in 1:nrow(cluster_lookup)) {
+  
+  formatted_label <- sprintf("<b>%s</b>", cluster_lookup$label[i])
+
+  # Adding the shadow
+  pp2 <- pp2 %>% add_annotations(
+    x = cluster_lookup$centroid_x[i] ,  # slight offset for the shadow
+    y = cluster_lookup$centroid_y[i] ,  # slight offset for the shadow
+    text = formatted_label,
+    showarrow = FALSE, 
+    opacity = 1,
+    font = list(size = 30, family = "Helvetica", color = adjusted_colours_lighter_0.2[as.numeric(cluster_lookup$cluster[i])])
+  )
+  
+  # Adding the main annotation
+  pp2 <- pp2 %>% add_annotations(
+    x = cluster_lookup$centroid_x[i],
+    y = cluster_lookup$centroid_y[i],
+    text = cluster_lookup$label[i],
+    showarrow = FALSE,
+    font = list(size = 30, family = "Helvetica", color = adjusted_colours_darker_0.8[as.numeric(cluster_lookup$cluster[i])])
+  )
+}
+
+pp2
+```
+
+What about a different offset
+```{r}
+(pp <- plot_ly(data, 
+             x = ~x, y
+             = ~y, 
+             type = 'scattergl',
+             # type = "scatter",
+             mode = 'markers',
+             color = ~cluster,
+             opacity = 0.6,
+             colors = adjusted_colours_lighter_0.5,
+             marker = list(size = 4),
+             hoverinfo = "none") %>% 
+  config(scrollZoom = TRUE) %>% 
+  layout(
+    showlegend = FALSE,
+    xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE,
+                 title = ""),
+    yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE,
+                 title = ""),
+    plot_bgcolor = 'rgba(0, 0, 0, 0)',
+    paper_bgcolor = 'rgba(0, 0, 0, 0)'
+  )
+)
+```
+
+```{r}
+pp3 <- pp
+for (i in 1:nrow(cluster_lookup)) {
+  
+  formatted_label <- sprintf("<b>%s</b>", cluster_lookup$label[i])
+
+  # Adding the shadow
+  pp3 <- pp3 %>% add_annotations(
+    x = cluster_lookup$centroid_x[i] ,  # slight offset for the shadow
+    y = cluster_lookup$centroid_y[i] ,  # slight offset for the shadow
+    text = cluster_lookup$label[i],
+    showarrow = FALSE, 
+    opacity = 1,
+    xshift = 2, yshift = -2, # Adjust shadow position
+    font = list(size = 30, 
+                # family = "Helvetica", 
+                family = "Cinzel",
+                # color = adjusted_colours_lighter_0.05[as.numeric(cluster_lookup$cluster[i ])]
+                color = "white"
+    )
+  )
+  
+  # Adding the main annotation
+  pp3 <- pp3 %>% add_annotations(
+    x = cluster_lookup$centroid_x[i],
+    y = cluster_lookup$centroid_y[i],
+    text = cluster_lookup$label[i],
+    showarrow = FALSE,
+    font = list(size = 30, 
+                # family = "Helvetica", 
+                family = "Cinzel",
+                color = adjusted_colours_darker_1[as.numeric(cluster_lookup$cluster[i])])
+  )
+}
+pp3
+```
+
+Some cgpt aided zooming with labels:
+```{r setup, include=FALSE}
+library(plotly)
+library(tibble)
+library(dplyr)
+library(purrr)
+library(htmlwidgets)
+
+set.seed(1234)
+
+n = 10000
+data <- tibble(
+  x = rnorm(n, mean = 4, sd = 1),
+  y = rnorm(n, mean = 4.5, sd = 1.2)
+)
+
+k <- 5
+clusters <- kmeans(data, centers = k)
+
+data <- data %>%
+  mutate(cluster = factor(clusters$cluster))
+
+centroids <- as.data.frame(clusters$centers)
+
+# Function to adjust colors
+adjust_color <- function(color_hex, og_val) {
+  rgb_vals <- col2rgb(color_hex)
+  rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
+  rgb_new <- pmin(rgb_new, 255)
+  new_color_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+  return(new_color_hex)
+}
+
+colors <- RColorBrewer::brewer.pal(n = k, name = "Set1")
+
+adjusted_colors_0.2 <- map_chr(colors, ~adjust_color(.x, og_val = 0.2))
+adjusted_colors_0.5 <- map_chr(colors, ~adjust_color(.x, og_val = 0.5))
+
+p <- plot_ly(data,
+             x = ~x, y = ~y,
+             type = 'scattergl',
+             mode = 'markers',
+             color = ~cluster,
+             opacity = 1,
+             colors = adjusted_colors_0.5) %>%
+  config(scrollZoom = TRUE) %>%
+  layout(
+    xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE,
+                 title = ""),
+    yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE,
+                 title = ""),
+    plot_bgcolor = 'rgba(0, 0, 0, 0)',
+    paper_bgcolor = 'rgba(0, 0, 0, 0)'
+  )
+
+cluster_lookup <- tibble(
+  cluster = c(1, 2, 3, 4, 5),
+  label_zoomed_out = c("Antivax", "Hoax", "Pfizer", "Covid", "Virus"),
+  label_zoomed_in = c("Cluster 1", "Cluster 2", "Cluster 3", "Cluster 4", "Cluster 5"),
+  centroid_x = centroids$x,
+  centroid_y = centroids$y
+)
+
+# Adjust the positions for zoomed_in labels
+cluster_lookup <- cluster_lookup %>%
+  mutate(
+    label_zoomed_in_x = centroid_x + rnorm(n(), 0, 0.5),  # Adjust this for desired offset
+    label_zoomed_in_y = centroid_y + rnorm(n(), 0, 0.5)   # Adjust this for desired offset
+  )
+
+# Initial annotations for zoomed out
+annotations_zoomed_out <- lapply(1:nrow(cluster_lookup), function(i) {
+  list(
+    x = cluster_lookup$centroid_x[i],
+    y = cluster_lookup$centroid_y[i],
+    text = cluster_lookup$label_zoomed_out[i],
+    showarrow = FALSE,
+    font = list(size = 24, family = "helvetica", color = colors[as.numeric(cluster_lookup$cluster[i])])
+  )
+})
+
+# Initial annotations for zoomed in (empty initially)
+annotations_zoomed_in <- list()
+
+p <- p %>% layout(annotations = annotations_zoomed_out)
+
+# Create the JavaScript code as a string
+js_code <- sprintf("
+  function(el, x) {
+    var currentZoomedOut = true;
+    var debounceTimeout;
+
+    el.on('plotly_relayout', function(eventdata) {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(function() {
+        var zoomLevel = eventdata['xaxis.range[1]'] - eventdata['xaxis.range[0]'];
+        var newAnnotations = [];
+
+        if (zoomLevel < 2 && !currentZoomedOut) {
+          newAnnotations = [
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } }
+          ];
+          currentZoomedOut = true;
+        } else if (zoomLevel >= 2 && currentZoomedOut) {
+          newAnnotations = [
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } }
+          ];
+          currentZoomedOut = false;
+        }
+
+        Plotly.relayout(el, { annotations: newAnnotations });
+      }, 100);
+    });
+  }
+",
+                   cluster_lookup$centroid_x[1], cluster_lookup$centroid_y[1], cluster_lookup$label_zoomed_out[1], colors[1],
+                   cluster_lookup$centroid_x[2], cluster_lookup$centroid_y[2], cluster_lookup$label_zoomed_out[2], colors[2],
+                   cluster_lookup$centroid_x[3], cluster_lookup$centroid_y[3], cluster_lookup$label_zoomed_out[3], colors[3],
+                   cluster_lookup$centroid_x[4], cluster_lookup$centroid_y[4], cluster_lookup$label_zoomed_out[4], colors[4],
+                   cluster_lookup$centroid_x[5], cluster_lookup$centroid_y[5], cluster_lookup$label_zoomed_out[5], colors[5],
+                   cluster_lookup$label_zoomed_in_x[1], cluster_lookup$label_zoomed_in_y[1], cluster_lookup$label_zoomed_in[1], colors[1],
+                   cluster_lookup$label_zoomed_in_x[2], cluster_lookup$label_zoomed_in_y[2], cluster_lookup$label_zoomed_in[2], colors[2],
+                   cluster_lookup$label_zoomed_in_x[3], cluster_lookup$label_zoomed_in_y[3], cluster_lookup$label_zoomed_in[3], colors[3],
+                   cluster_lookup$label_zoomed_in_x[4], cluster_lookup$label_zoomed_in_y[4], cluster_lookup$label_zoomed_in[4], colors[4],
+                   cluster_lookup$label_zoomed_in_x[5], cluster_lookup$label_zoomed_in_y[5], cluster_lookup$label_zoomed_in[5], colors[5]
+)
+
+# Attach the JavaScript code using onRender
+p <- p %>% htmlwidgets::onRender(js_code)
+
+p
+```

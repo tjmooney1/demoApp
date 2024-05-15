@@ -91,19 +91,17 @@ This function does a few things, but notably for each reference statement input 
 6) Provide the output as a dataframe
 
 ```{r}
-cosine_calculation_threshold <- function(reference_statements,
-                                        cosine_sim_thresholds = 0.5,
+cosine_calculation_threshold <- function(reference_statement,
+                                        cosine_sim_threshold = 0.5,
                                         embedding_model,
                                         sentence_matrix,
                                         df) {
     # Initialize an empty data frame to store the results
     combined_sentence_candidates <- data.frame()
-    
-    for (i in 1:length(reference_statements)) {
       
-      ref_sentence <- reference_statements[i]
+      ref_sentence <- reference_statement
       
-      cosine_sim_threshold <- cosine_sim_thresholds[i]
+      cosine_sim_threshold <- cosine_sim_threshold
       
       reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
       
@@ -122,13 +120,8 @@ cosine_calculation_threshold <- function(reference_statements,
         filter(cosine_sim > cosine_sim_threshold) %>%
         arrange(desc(cosine_sim)) %>% 
         filter(!duplicated(universal_message_id)) 
-      
-      # Combine the results with the previous results
-      combined_sentence_candidates <- rbind(combined_sentence_candidates,
-                                            current_sentence_candidates)
-    }
-    
-    return(combined_sentence_candidates)
+
+    return(current_sentence_candidates)
     
   }
 ```
@@ -138,8 +131,8 @@ cosine_calculation_threshold <- function(reference_statements,
 This is an example of the function providing an output dataframe that can be used to sense check performance
 
 ```{r}
-cosine_calculation_threshold(reference_statements = "cybersecurity", 
-                             cosine_sim_thresholds = 0.3, 
+cosine_calculation_threshold(reference_statement = "cybersecurity", 
+                             cosine_sim_threshold = 0.3, 
                              embedding_model = multi_qa_embedder, 
                              sentence_matrix = multi_qa_matrix, 
                              df = example) %>% 
@@ -152,7 +145,7 @@ cosine_calculation_threshold(reference_statements = "cybersecurity",
 Function 2 works in almost the exact same way as Function 1, except its output is *n* number of posts. This less conservative and some irrelevant posts may sneak in- but in my opinion works for a first pass nicely.
 
 ```{r}
-top_posts_cosine_similarity <- function(reference_statements,
+top_posts_cosine_similarity <- function(reference_statement,
                                         embedding_model,
                                         sentence_matrix,
                                         df,
@@ -160,10 +153,8 @@ top_posts_cosine_similarity <- function(reference_statements,
   
     # Initialize an empty data frame to store the results
     combined_sentence_candidates <- data.frame()
-    
-    for (i in 1:length(reference_statements)) {
       
-      ref_sentence <- reference_statements[i]
+      ref_sentence <- reference_statement
       
       reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
       
@@ -182,14 +173,8 @@ top_posts_cosine_similarity <- function(reference_statements,
         arrange(desc(cosine_sim)) %>% 
         filter(!duplicated(universal_message_id)) %>% 
         slice_head(n = n)
-      
-      # Combine the results with the previous results
-      combined_sentence_candidates <-
-        rbind(combined_sentence_candidates,
-              current_sentence_candidates)
-    }
     
-    return(combined_sentence_candidates)
+    return(current_sentence_candidates)
   }
 ```
 
@@ -198,7 +183,7 @@ top_posts_cosine_similarity <- function(reference_statements,
 This is an example of the function providing an output dataframe that can be used to sense check performance
 
 ```{r}
-top_posts_cosine_similarity(reference_statements = "AI art is bad", 
+top_posts_cosine_similarity(reference_statement = "AI art is bad", 
                             embedding_model = msmarco_embedder, 
                             sentence_matrix = msmarco_matrix, 
                             df = example,

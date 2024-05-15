@@ -1,0 +1,686 @@
+---
+title: "semantic_search"
+author: "Jamie Hudson"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+The purpose of this document is to experiment with performing semantic search over our documents.
+
+## Load packages
+
+```{r}
+library(BertopicR)
+library(tidyverse)
+library(plotly)
+library(viridis)
+```
+
+## Load data
+
+This is example data from DisplayR
+
+```{r}
+example <- DisplayR::disp_example %>% 
+  drop_na(date) 
+```
+
+## Calculate/get embeddings
+
+For this, we need to have the embeddings of all of our documents saved. For this purpose, I will just perform the embedding step as done in BertopicR- however for the real implementation it is best for this to be completed in Colab.
+
+**Also note we might want to perform this over sentences rather than full documents. This should be decided before implementing in the app**
+
+The below shows the workflow for three different embedding models- "msmarco-distilbert-base-v4", "multi-qa-mpnet-base-cos-v1" and ""baai/bge-large-en-v1.5". The first two are optimised for asymmetric search (i.e. your query is not the same length/style as the documents are you searching) and the later is optimised for symmetric search (query is similar in length and style to searched documents).
+
+```{r}
+msmarco_embedder <- bt_make_embedder_st(
+  model = "msmarco-distilbert-base-v4"
+  )
+
+## msmarco model
+msmarco_embeddings <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_msmarco_embeddings.csv")
+
+# sentence_matrix <- embeddings %>%
+  # as.matrix()
+
+msmarco_matrix <- msmarco_embeddings %>%
+  select(where(is.numeric)) %>%
+  as.matrix()
+
+## multi_qa model
+
+multi_qa_embedder <- bt_make_embedder_st(
+  model = "multi-qa-mpnet-base-cos-v1"
+  )
+
+multi_qa_embeddings <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings.csv")
+
+multi_qa_matrix <- multi_qa_embeddings %>%
+  select(where(is.numeric)) %>%
+  as.matrix()
+
+## bge model
+
+bge_embedder <- bt_make_embedder_st(
+  model = "baai/bge-large-en-v1.5"
+  )
+
+bge_embeddings <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_bge_embeddings.csv")
+
+bge_matrix <- bge_embeddings %>%
+  select(where(is.numeric)) %>%
+  as.matrix()
+```
+
+## Function 1: filter by cosine similarity value
+
+This function does a few things, but notably for each reference statement input it:
+
+1) Calculates the reference (or query) embedding using `bt_do_embedding`
+2) Compute the dot product between the reference vector and each row (sentence embedding) in `sentence_matrix`
+3) Calculate the euclidean norm (magnitude) for each sentence vector in `sentence_matrix`
+4) Calculate the cosine similarity between the reference vector and each row (sentence embedding) in `sentence_matrix`
+5) Append the cosine similarity scores for each document to the original dataframe, and filter if the cosine_similarity is above the required threshold
+6) Provide the output as a dataframe
+
+```{r}
+cosine_calculation_threshold <- function(reference_statements,
+                                        cosine_sim_thresholds = 0.5,
+                                        embedding_model,
+                                        sentence_matrix,
+                                        df) {
+    # Initialize an empty data frame to store the results
+    combined_sentence_candidates <- data.frame()
+    
+    for (i in 1:length(reference_statements)) {
+      
+      ref_sentence <- reference_statements[i]
+      
+      cosine_sim_threshold <- cosine_sim_thresholds[i]
+      
+      reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
+      
+      sentence_dot_products <- sentence_matrix %*% reference_vector
+      
+      sentence_norm_matrix <- sqrt(rowSums(sentence_matrix ^ 2))
+      
+      reference_norm <- sqrt(sum(reference_vector ^ 2))
+      
+      sentence_cosine_sims <- sentence_dot_products / (sentence_norm_matrix * reference_norm)
+      
+      # Create a data frame for the current reference sentence
+      current_sentence_candidates <- df %>%
+        mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
+        relocate(cosine_sim) %>%
+        filter(cosine_sim > cosine_sim_threshold) %>%
+        arrange(desc(cosine_sim)) %>% 
+        filter(!duplicated(universal_message_id)) 
+      
+      # Combine the results with the previous results
+      combined_sentence_candidates <- rbind(combined_sentence_candidates,
+                                            current_sentence_candidates)
+    }
+    
+    return(combined_sentence_candidates)
+    
+  }
+```
+
+### Example usage of Function 1
+
+This is an example of the function providing an output dataframe that can be used to sense check performance
+
+```{r}
+cosine_calculation_threshold(reference_statements = "cybersecurity", 
+                             cosine_sim_thresholds = 0.3, 
+                             embedding_model = multi_qa_embedder, 
+                             sentence_matrix = multi_qa_matrix, 
+                             df = example) %>% 
+  distinct(universal_message_id, .keep_all = T) %>% 
+  DT::datatable()
+```
+
+## Function 2: filter by top *n* similar posts
+
+Function 2 works in almost the exact same way as Function 1, except its output is *n* number of posts. This less conservative and some irrelevant posts may sneak in- but in my opinion works for a first pass nicely.
+
+```{r}
+top_posts_cosine_similarity <- function(reference_statements,
+                                        embedding_model,
+                                        sentence_matrix,
+                                        df,
+                                        n = 50) {
+  
+    # Initialize an empty data frame to store the results
+    combined_sentence_candidates <- data.frame()
+    
+    for (i in 1:length(reference_statements)) {
+      
+      ref_sentence <- reference_statements[i]
+      
+      reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
+      
+      sentence_dot_products <- sentence_matrix %*% reference_vector
+      
+      sentence_norm_matrix <- sqrt(rowSums(sentence_matrix ^ 2))
+      
+      reference_norm <- sqrt(sum(reference_vector ^ 2))
+      
+      sentence_cosine_sims <- sentence_dot_products / (sentence_norm_matrix * reference_norm)
+      
+      # Create a data frame for the current reference sentence
+      current_sentence_candidates <- df %>%
+        mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
+        relocate(cosine_sim) %>%
+        arrange(desc(cosine_sim)) %>% 
+        filter(!duplicated(universal_message_id)) %>% 
+        slice_head(n = n)
+      
+      # Combine the results with the previous results
+      combined_sentence_candidates <-
+        rbind(combined_sentence_candidates,
+              current_sentence_candidates)
+    }
+    
+    return(combined_sentence_candidates)
+  }
+```
+
+### Example usage of Function 2
+
+This is an example of the function providing an output dataframe that can be used to sense check performance
+
+```{r}
+top_posts_cosine_similarity(reference_statements = "AI art is bad", 
+                            embedding_model = msmarco_embedder, 
+                            sentence_matrix = msmarco_matrix, 
+                            df = example,
+                            n = 3) %>% 
+  distinct(universal_message_id, .keep_all = T) %>% 
+  DT::datatable()
+```
+
+## Perform semantic similarity on top 20 sentences
+```{r}
+doc_id <- top_posts_cosine_similarity(reference_statements = "AI art is bad", 
+                            embedding_model = msmarco_embedder, 
+                            sentence_matrix = msmarco_matrix, 
+                            df = example,
+                            n = 50) %>% 
+  pull(document)
+```
+
+## Plot the UMAP
+
+This code allows us to walk through the steps of plotting the original UMAP (V1 and V2 from the `example` df), but filter for posts that are pulled in our semantic search filter.
+
+```{r}
+# Assuming doc_id is already defined
+# Create a new column for colours
+example <- example %>%
+  mutate(new_colour = if_else(document %in% doc_id, as.character(topic), "grey"))
+
+k <- n_distinct(example$topic)
+
+eg_colours <- viridis::viridis(k)
+
+adjusted_colours_lighter_0.5 <- map_chr(eg_colours, ~adjust_colour_lighter(.x, og_val = 0.5))
+adjusted_colours_darker_0.8 <- map_chr(eg_colours, ~adjust_colour_darker(.x, og_val = 0.8))
+
+topic_colours <- setNames(adjusted_colours_lighter_0.5, unique(example$topic))
+
+# Map the new_colour column to the topic_colours
+example <- example %>%
+  mutate(colour_mapped = if_else(new_colour == "grey", "grey", topic_colours[new_colour]))
+
+# Insert line breaks every 10 words in text_copy
+insert_line_breaks <- function(text, n = 10) {
+  words <- strsplit(text, " ")[[1]]
+  paste(sapply(seq(1, length(words), n), function(i) {
+    paste(words[i:min(i + n - 1, length(words))], collapse = " ")
+  }), collapse = "<br>")
+}
+
+example <- example %>%
+  mutate(text_with_breaks = sapply(text_copy, insert_line_breaks))
+
+# Split the data into grey and highlight points
+grey_points <- example %>% filter(new_colour == "grey") %>% mutate(opacity = 0.2)
+highlight_points <- example %>% filter(new_colour != "grey") %>% mutate(opacity = 1)
+
+# Plot the points with correct colours and opacities
+p <- plot_ly() %>%
+  add_trace(data = grey_points,
+            x = ~V1, y = ~V2,
+            type = 'scattergl',
+            mode = 'markers',
+            marker = list(color = ~colour_mapped, opacity = ~opacity),
+            hoverinfo = "text",
+            text = ~text_with_breaks) %>%
+  add_trace(data = highlight_points,
+            x = ~V1, y = ~V2,
+            type = 'scattergl',
+            mode = 'markers',
+            marker = list(color = ~colour_mapped, opacity = ~opacity,
+                          size = 10),
+            hoverinfo = "text",
+            text = ~text_with_breaks) %>%
+  config(scrollZoom = TRUE) %>%
+  layout(
+    showlegend = FALSE,
+    xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+    yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+    plot_bgcolor = 'rgba(0, 0, 0, 0)',
+    paper_bgcolor = 'rgba(0, 0, 0, 0)'
+  )
+
+# Update the cluster lookup for the annotations
+eg_cluster_lookup <- example %>%
+  group_by(topic) %>%
+  summarise(topic_number = cur_group_id(),
+            label = first(topic),
+            centroid_x = mean(V1),
+            centroid_y = mean(V2))
+
+# Add the annotations
+pp <- p
+for (i in 1:nrow(eg_cluster_lookup)) {
+  pp <- pp %>%
+    add_annotations(x = eg_cluster_lookup$centroid_x[i], y = eg_cluster_lookup$centroid_y[i],
+                    text = eg_cluster_lookup$label[i],
+                    showarrow = FALSE,
+                    bgcolor = "white",
+                    opacity = 0.2,
+                    font = list(size = 24, family = "Helvetica", color = "white")) %>%
+    add_annotations(x = eg_cluster_lookup$centroid_x[i], 
+                    y = eg_cluster_lookup$centroid_y[i],
+                    text = eg_cluster_lookup$label[i],
+                    showarrow = FALSE,
+                    font = list(size = 24, family = "Helvetica", color = adjusted_colours_darker_0.8[as.numeric(eg_cluster_lookup$topic_number[i])]))
+}
+
+pp
+```
+
+## Shiny App
+
+### For threshold
+
+This is the code for a simple shiny app based where we can trial out different values of cosine similarity.
+
+```{r}
+ui <- fluidPage(
+  titlePanel("Semantic Search UMAP Plot"),
+  sidebarLayout(
+    sidebarPanel(
+      textInput("search_term", "Enter search term:", value = "AI art"),
+      numericInput("cosine_sim_thresholds", "Cosine similarity threshold", value = 0.5, min = 0, max = 1),
+      actionButton("update_plot", "Update Plot")
+    ),
+    mainPanel(
+      plotlyOutput("umap_plot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  cosine_calculation_threshold <- function(reference_statements,
+                                        cosine_sim_thresholds = 0.5,
+                                        embedding_model,
+                                        sentence_matrix,
+                                        df) {
+    # Initialize an empty data frame to store the results
+    combined_sentence_candidates <- data.frame()
+    
+    for (i in 1:length(reference_statements)) {
+      
+      ref_sentence <- reference_statements[i]
+      
+      cosine_sim_threshold <- cosine_sim_thresholds[i]
+      
+      reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
+      
+      sentence_dot_products <- sentence_matrix %*% reference_vector
+      
+      sentence_norm_matrix <- sqrt(rowSums(sentence_matrix ^ 2))
+      
+      reference_norm <- sqrt(sum(reference_vector ^ 2))
+      
+      sentence_cosine_sims <- sentence_dot_products / (sentence_norm_matrix * reference_norm)
+      
+      # Create a data frame for the current reference sentence
+      current_sentence_candidates <- df %>%
+        mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
+        relocate(cosine_sim) %>%
+        filter(cosine_sim > cosine_sim_threshold) %>%
+        arrange(desc(cosine_sim)) %>% 
+        filter(!duplicated(universal_message_id)) 
+      
+      # Combine the results with the previous results
+      combined_sentence_candidates <- rbind(combined_sentence_candidates,
+                                            current_sentence_candidates)
+    }
+    
+    return(combined_sentence_candidates)
+    
+  }
+  
+  observeEvent(input$update_plot, {
+    search_term <- input$search_term
+    cosine_threshold <- input$cosine_sim_thresholds
+    doc_id <- cosine_calculation_threshold(reference_statements = search_term, 
+                                           cosine_sim_thresholds = cosine_threshold,
+                                          embedding_model = msmarco_embedder, 
+                                          sentence_matrix = msmarco_matrix,
+                                          df = example) %>% 
+      pull(document)
+    
+    example <- example %>%
+      mutate(new_colour = if_else(document %in% doc_id, as.character(topic), "#cccccc"))
+    
+    k <- n_distinct(example$topic)
+    eg_colours <- viridis::viridis(k)
+
+    adjusted_colours_lighter_0.5 <- map_chr(eg_colours, ~adjust_colour_lighter(.x, og_val = 0.5))
+    adjusted_colours_darker_0.8 <- map_chr(eg_colours, ~adjust_colour_darker(.x, og_val = 0.8))
+    topic_colours <- setNames(adjusted_colours_lighter_0.5, unique(example$topic))
+    example <- example %>%
+      mutate(colour_mapped = if_else(new_colour == "#cccccc", "#cccccc", topic_colours[new_colour]))
+    
+    insert_line_breaks <- function(text, n = 10) {
+      words <- strsplit(text, " ")[[1]]
+      paste(sapply(seq(1, length(words), n), function(i) {
+        paste(words[i:min(i + n - 1, length(words))], collapse = " ")
+      }), collapse = "<br>")
+    }
+    
+    example <- example %>%
+      mutate(text_with_breaks = sapply(text_copy, insert_line_breaks))
+    
+    grey_points <- example %>% filter(new_colour == "#cccccc") %>% mutate(opacity = 0.2)
+    highlight_points <- example %>% filter(new_colour != "#cccccc") %>% mutate(opacity = 1)
+    
+    p <- plot_ly() %>%
+      add_trace(data = grey_points,
+                x = ~V1, y = ~V2,
+                type = 'scattergl',
+                mode = 'markers',
+                marker = list(color = ~colour_mapped, opacity = ~opacity),
+                hoverinfo = "text",
+                text = ~text_with_breaks) %>%
+      add_trace(data = highlight_points,
+                x = ~V1, y = ~V2,
+                type = 'scattergl',
+                mode = 'markers',
+                marker = list(color = ~colour_mapped, opacity = ~opacity,
+                              size = 10),
+                hoverinfo = "text",
+                text = ~text_with_breaks) %>%
+      config(scrollZoom = TRUE) %>%
+      layout(
+        showlegend = FALSE,
+        xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+        yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+        plot_bgcolor = 'rgba(0, 0, 0, 0)',
+        paper_bgcolor = 'rgba(0, 0, 0, 0)'
+      )
+    
+    eg_cluster_lookup <- example %>%
+      group_by(topic) %>%
+      summarise(topic_number = cur_group_id(),
+                label = first(topic),
+                centroid_x = mean(V1),
+                centroid_y = mean(V2))
+    
+    pp <- p
+    for (i in 1:nrow(eg_cluster_lookup)) {
+      pp <- pp %>%
+        add_annotations(x = eg_cluster_lookup$centroid_x[i], y = eg_cluster_lookup$centroid_y[i],
+                        text = eg_cluster_lookup$label[i],
+                        showarrow = FALSE,
+                        bgcolor = "white",
+                        opacity = 0.2,
+                        font = list(size = 24, family = "Helvetica", color = "white")) %>%
+        add_annotations(x = eg_cluster_lookup$centroid_x[i], y = eg_cluster_lookup$centroid_y[i],
+                        text = eg_cluster_lookup$label[i],
+                        showarrow = FALSE,
+                        font = list(size = 24, family = "Helvetica", color = adjusted_colours_darker_0.8[as.numeric(eg_cluster_lookup$topic_number[i])]))
+    }
+    
+    output$umap_plot <- renderPlotly({ pp })
+  })
+}
+
+shinyApp(ui, server)
+```
+
+### For top n terms
+
+This is the code for a simple shiny app based where we can decide how many results are given back to us
+
+```{r}
+ui <- fluidPage(
+  titlePanel("Semantic Search UMAP Plot"),
+  sidebarLayout(
+    sidebarPanel(
+      textInput("search_term", "Enter search term:", value = "AI art"),
+      numericInput("num_results", "Number of results (k):", value = 50, min = 1, max = nrow(example)),
+      actionButton("update_plot", "Update Plot")
+    ),
+    mainPanel(
+      plotlyOutput("umap_plot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  top_posts_cosine_similarity <- function(reference_statements,
+                                          embedding_model,
+                                          sentence_matrix,
+                                          df,
+                                          n = 50) {
+    
+    # Initialize an empty data frame to store the results
+    combined_sentence_candidates <- data.frame()
+    
+    for (i in 1:length(reference_statements)) {
+      
+      ref_sentence <- reference_statements[i]
+      
+      reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
+      
+      sentence_dot_products <- sentence_matrix %*% reference_vector
+      
+      sentence_norm_matrix <- sqrt(rowSums(sentence_matrix ^ 2))
+      
+      reference_norm <- sqrt(sum(reference_vector ^ 2))
+      
+      sentence_cosine_sims <- sentence_dot_products / (sentence_norm_matrix * reference_norm)
+      
+      # Create a data frame for the current reference sentence
+      current_sentence_candidates <- df %>%
+        mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
+        relocate(cosine_sim) %>%
+        arrange(desc(cosine_sim)) %>% 
+        filter(!duplicated(universal_message_id)) %>% 
+        slice_head(n = n)
+      
+      # Combine the results with the previous results
+      combined_sentence_candidates <-
+        rbind(combined_sentence_candidates,
+              current_sentence_candidates)
+    }
+    
+    return(combined_sentence_candidates)
+  }
+  
+  observeEvent(input$update_plot, {
+    search_term <- input$search_term
+    n <- input$num_results
+    doc_id <- top_posts_cosine_similarity(reference_statements = search_term, 
+                                          embedding_model = msmarco_embedder, 
+                                          sentence_matrix = msmarco_matrix,
+                                          df = example, 
+                                          n = n) %>% 
+      pull(document)
+    
+    example <- example %>%
+      mutate(new_colour = if_else(document %in% doc_id, as.character(topic), "#cccccc"))
+    
+    k <- n_distinct(example$topic)
+    eg_colours <- viridis::viridis(k)
+
+    adjusted_colours_lighter_0.5 <- map_chr(eg_colours, ~adjust_colour_lighter(.x, og_val = 0.5))
+    adjusted_colours_darker_0.8 <- map_chr(eg_colours, ~adjust_colour_darker(.x, og_val = 0.8))
+    topic_colours <- setNames(adjusted_colours_lighter_0.5, unique(example$topic))
+    example <- example %>%
+      mutate(colour_mapped = if_else(new_colour == "#cccccc", "#cccccc", topic_colours[new_colour]))
+    
+    insert_line_breaks <- function(text, n = 10) {
+      words <- strsplit(text, " ")[[1]]
+      paste(sapply(seq(1, length(words), n), function(i) {
+        paste(words[i:min(i + n - 1, length(words))], collapse = " ")
+      }), collapse = "<br>")
+    }
+    
+    example <- example %>%
+      mutate(text_with_breaks = sapply(text_copy, insert_line_breaks))
+    
+    grey_points <- example %>% filter(new_colour == "#cccccc") %>% mutate(opacity = 0.2)
+    highlight_points <- example %>% filter(new_colour != "#cccccc") %>% mutate(opacity = 1)
+    
+    p <- plot_ly() %>%
+      add_trace(data = grey_points,
+                x = ~V1, y = ~V2,
+                type = 'scattergl',
+                mode = 'markers',
+                marker = list(color = ~colour_mapped, opacity = ~opacity),
+                hoverinfo = "text",
+                text = ~text_with_breaks) %>%
+      add_trace(data = highlight_points,
+                x = ~V1, y = ~V2,
+                type = 'scattergl',
+                mode = 'markers',
+                marker = list(color = ~colour_mapped, opacity = ~opacity,
+                              size = 10),
+                hoverinfo = "text",
+                text = ~text_with_breaks) %>%
+      config(scrollZoom = TRUE) %>%
+      layout(
+        showlegend = FALSE,
+        xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+        yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
+        plot_bgcolor = 'rgba(0, 0, 0, 0)',
+        paper_bgcolor = 'rgba(0, 0, 0, 0)'
+      )
+    
+    eg_cluster_lookup <- example %>%
+      group_by(topic) %>%
+      summarise(topic_number = cur_group_id(),
+                label = first(topic),
+                centroid_x = mean(V1),
+                centroid_y = mean(V2))
+    
+    pp <- p
+    for (i in 1:nrow(eg_cluster_lookup)) {
+      pp <- pp %>%
+        add_annotations(x = eg_cluster_lookup$centroid_x[i], y = eg_cluster_lookup$centroid_y[i],
+                        text = eg_cluster_lookup$label[i],
+                        showarrow = FALSE,
+                        bgcolor = "white",
+                        opacity = 0.2,
+                        font = list(size = 24, family = "Helvetica", color = "white")) %>%
+        add_annotations(x = eg_cluster_lookup$centroid_x[i], y = eg_cluster_lookup$centroid_y[i],
+                        text = eg_cluster_lookup$label[i],
+                        showarrow = FALSE,
+                        font = list(size = 24, family = "Helvetica", color = adjusted_colours_darker_0.8[as.numeric(eg_cluster_lookup$topic_number[i])]))
+    }
+    
+    output$umap_plot <- renderPlotly({ pp })
+  })
+}
+
+shinyApp(ui, server)
+```
+
+## Keyword search BM25
+
+As a trial/POC for keyword search, can use the package `superml` which has the function `bm_25` which performs Best Matching 25 to rank documents. 
+However, it is very slow even over a dataset of 5k, so would need to be broken down and remade so we save the intermediate steps in our database (i.e DTM).
+
+```{r}
+# Load the superml package
+library(superml)
+
+bm25_keyword_search <- function(reference_sentence, documents, top_n = 2, df) {
+  
+  # Perform the BM25 search
+  results <- bm_25(document = reference_sentence, corpus = documents, top_n = top_n)
+  
+  # Get the original indices of the top results
+  result_indices <- match(names(results), documents)
+  
+  # Create a dataframe to store the results
+  results_df <- data.frame(
+    index = result_indices,
+    document = names(results),
+    score = as.numeric(results)
+  ) %>% 
+    slice_head(n = top_n)
+  
+  results_df <- results_df %>% 
+    pull(index)
+  # results_df <- df %>% 
+  #   filter(document %in% results_df$index)
+  
+  # Return the top_n results
+  return(results_df)
+}
+
+
+# Example usage of the function
+documents_v1 <- tribble(~x, ~y,
+  "The world cup is in Qatar.", 1,
+  "The sky is blue.", 2,
+  "The bear lives in the woods.", 3,
+  "An apple is a fruit.", 4
+)
+
+# Example usage of the function
+documents_v2 <- tribble(~x, ~y,
+  "The world cup is in Qatar.", 1,
+  "The sky is blue.", 2,
+  "The bear lives in the woods.", 3,
+  "An apple is a fruit.", 4,
+  "Where in the world is my cup of coffee?", 5
+)
+
+
+reference_sentence <- "Where is the world cup?"
+
+bm_25(document = "Where is the world cup?", corpus = c(documents_v1$x), top_n = 2)
+bm_25(document = "Where is the world cup?", corpus = c(documents_v2$x), top_n = 2)
+
+# Get the top 2 related documents
+bm25_results <- bm25_keyword_search(reference_sentence = reference_sentence, 
+                                    documents = c(documents$x),
+                                    top_n = 2)
+
+bm25_results
+
+bm25_results <- bm25_keyword_search(reference_sentence = reference_sentence, 
+                                    documents = c(example$text_copy),
+                                    top_n = 2,
+                                    df = example)
+
+bm25_results %>% DT::datatable()
+```
+

@@ -2,7 +2,6 @@ dataUploadUi <- function(id){
   ns <- shiny::NS(id)
   shiny::tagList(
     shiny::br(),
-    shinyWidgets::dropdown(
       shinyWidgets::pickerInput(
         inputId = ns("dataset"),
         label = "Dataset",
@@ -13,12 +12,7 @@ dataUploadUi <- function(id){
         choicesOpt = list(
           icon = c("glyphicon-cog", "glyphicon-eye-open", "glyphicon-apple" )
         )
-      ),
-      # circle = TRUE, status = "danger",
-      icon = shiny::icon("folder"), width = "300px",
-      
-      tooltip = shinyWidgets::tooltipOptions(title = "Change datasets")
-    )
+      )
   )
 }
 

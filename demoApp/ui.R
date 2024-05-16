@@ -1,10 +1,19 @@
 ui <- shiny::fluidPage(
-
-  # theme = shinythemes::shinytheme("slate"),
-  theme = shinythemes::shinytheme("sandstone"),
-  # shiny::titlePanel("Data Exploration"),
   
-  dataUploadUi("data_upload_panel"),
-  umapUi("umap_panel")
-  
+  bslib::page_fillable(
+    bslib::card(
+      fill = TRUE,
+      height = "900px",
+      bslib::card_header("SHARE Creative Data Explore"),
+      bslib::layout_sidebar(
+        sidebar = bslib::sidebar(
+          dataUploadUi("data_upload_panel"),
+          open = FALSE),
+        umapUi("umap_panel"),
+        fillable = TRUE,
+        fill = TRUE
+      )
+    )
+  )
+ 
 )

@@ -737,11 +737,21 @@ multi_qa_embedder <- bt_make_embedder_st(
   model = "multi-qa-mpnet-base-cos-v1"
   )
 
-multi_qa_embeddings_sentences <- bt_do_embedding(multi_qa_embedder, example_sentences$sentence)
+# multi_qa_embeddings_sentences <- bt_do_embedding(multi_qa_embedder, example_sentences$sentence)
+bge_embeddings_sentences <- bt_do_embedding(bge_embedder, example_sentences$sentence)
 
-# multi_qa_embeddings_sentences <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings_sentences.csv")
+# multi_qa_embeddings_sentences %>% write_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings_sentences.rds")
 
-multi_qa_matrix_sentences <- multi_qa_embeddings_sentences %>%
+bge_embeddings_sentences %>% write_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_bge_embeddings_sentences.rds")
+
+# multi_qa_embeddings_sentences <- read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings_sentences.rds")
+
+# bge_embeddings_sentences <- read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_bge_embeddings_sentences.rds")
+
+# multi_qa_matrix_sentences <- multi_qa_embeddings_sentences %>%
+#   as.matrix()
+
+bge_matrix_sentences <- multi_qa_embeddings_sentences %>%
   as.matrix()
 
 cosine_calculation_threshold_sentence <- function(reference_statement,
@@ -778,24 +788,20 @@ cosine_calculation_threshold_sentence <- function(reference_statement,
   }
 
 ## Function 1
-cosine_calculation_threshold_sentence(reference_statement = "the terminator", 
+cosine_calculation_threshold_sentence(reference_statement = "AI art", 
                              cosine_sim_threshold = 0.5, 
                              embedding_model = multi_qa_embedder, 
                              sentence_matrix = multi_qa_matrix_sentences, 
-                             df = example_sentences) %>%
-  group_by(document) %>%
-  summarise(
-    text_copy = first(text_copy),
-    sentences = list(sentence)
-  ) %>%
-  mutate(test_text = mapply(highlight_sentences, text_copy, sentences)) %>%
-  right_join(example_sentences, by = "document") %>%
-  select(text_copy = text_copy.x, sentence, document, test_text)
+                             df = example_sentences) 
 ```
 
 #### Shiny app
 
-In this version of the shiny app POC, the sentences of each post that are relevant are in **bold**
+In this version of the shiny app POC, the sentences of each post that are relevant are in **bold**.
+
+I also have noticed that the hover text doesn't appear for some posts- looking online this seems to be due to plotly not showing the contents of hover when the box would be larger than the plot itself. Checking these posts by eye, it looks like this is the case, as these posts are all very long.
+
+Think therefore for our cleaning steps for the app we need to also filter by length.
 
 ```{r}
 library(shiny)

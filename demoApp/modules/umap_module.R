@@ -39,8 +39,7 @@ umapServer <- function(id, df){
     
     output$umap_plot <- plotly::renderPlotly({
       createUmap(df = df,
-                 tracking_id = "test",
-                 title = "test")
+                 tracking_id = "test")
     })
     
     # output$raster_plot <- shiny::renderImage({

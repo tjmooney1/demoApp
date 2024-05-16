@@ -47,10 +47,11 @@ insert_line_breaks <- function(text, n = 10) {
 #'
 #' @noRd
 #' 
-createUmap <- function(df, tracking_id, title){
+createUmap <- function(df, tracking_id, grey_points = NULL, highlight_points = NULL){
   
   # colour functions ----
-  colours <- RColorBrewer::brewer.pal(n = length(unique(df()$clusters)), name = "Set1")
+  # colours <- RColorBrewer::brewer.pal(n = length(unique(df()$clusters)), name = "Set1")
+  colours <- viridis::viridis(n = length(unique(df()$clusters)), begin = 0, end = 0.92, direction = 1)
 
   adjusted_colours_lighter_0.6 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
   adjusted_colours_lighter_0.05 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05))
@@ -74,52 +75,78 @@ createUmap <- function(df, tracking_id, title){
   # ----
 
   # plot ----
-p <- df() %>%
-  dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
-   plotly::plot_ly(x = ~v1,
-                   y = ~v2,
-                   width = 1000,
-                   height = 700,
-                   color = ~clusters,
-                   customdata = ~rowid,
-                   type = "scatter",
-                   mode = "markers",
-                   text = ~text_with_breaks,
-                   hoverinfo = "text",
-                   colors = adjusted_colours_lighter_0.6,
-                   marker = list(opacity = 0.7),  # Adjust marker size and opacity
-                   source = tracking_id) %>%
-   plotly::layout(dragmode = "lasso",
-                  xaxis = list(
-                    showgrid = FALSE,
-                    showline = FALSE,
-                    zeroline = FALSE,
-                    showticklabels = FALSE,
-                    visile = FALSE
-                               # linecolor = "grey80",
-                               # mirror = TRUE,
-                               # linewidth = 1
-                               ),
-                  yaxis = list(
-                    showgrid = FALSE,
-                    showline = FALSE,
-                    zeroline = FALSE,
-                    showticklabels = FALSE,
-                    visile = FALSE
-                               # linecolor = "grey80",
-                               # mirror = TRUE,
-                               # linewidth = 1
-                               ),
-                  showlegend = TRUE,
-                  legend = list(title = "Topics")) %>%
-   plotly::config(
-     scrollZoom = TRUE,
-     displaylogo = FALSE,
-     edits = list(
-       shapePosition = TRUE,
-       annotation = TRUE
-     )
-   )
+  
+  if (!is.null(highlight_points)){
+    p <- plot_ly() %>%
+      add_trace(data = grey_points,
+                x = ~V1, y = ~V2,
+                type = "scattergl",
+                mode = "markers",
+                marker = list(color = ~colour_mapped, opacity = ~opacity),
+                hoverinfo ="text",
+                text = ~text_with_breaks) %>%
+      add_trace(data = highlight_points,
+                x = ~V1, y = ~V2,
+                type = "scattergl",
+                mode = "markers",
+                marker = list(color = ~colour_mapped, opacity = ~opacity, size = 10),
+                hoverinfo ="text",
+                text = ~text_with_breaks) %>%
+      config(scrollZoom = TRUE) %>%
+      layout(
+        showlegend = FALSE,
+        xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
+        yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
+        plot_bgcolor = "rgba(0, 0, 0, 0)",
+        paper_bgcolor = "rgba(0, 0, 0, 0)"
+      )
+  } else{
+    p <- df() %>%
+      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
+      plotly::plot_ly(x = ~v1,
+                      y = ~v2,
+                      width = 1000,
+                      height = 700,
+                      color = ~clusters,
+                      customdata = ~rowid,
+                      type = "scattergl",
+                      mode = "markers",
+                      text = ~text_with_breaks,
+                      hoverinfo = "text",
+                      colors = adjusted_colours_lighter_0.6,
+                      marker = list(opacity = 0.7),  # Adjust marker size and opacity
+                      source = tracking_id) %>%
+      plotly::layout(dragmode = "lasso",
+                     xaxis = list(
+                       showgrid = FALSE,
+                       showline = FALSE,
+                       zeroline = FALSE,
+                       showticklabels = FALSE,
+                       visile = FALSE,
+                       title = ""
+                     ),
+                     yaxis = list(
+                       showgrid = FALSE,
+                       showline = FALSE,
+                       zeroline = FALSE,
+                       showticklabels = FALSE,
+                       visile = FALSE,
+                       title = ""
+                     ),
+                     showlegend = TRUE,
+                     legend = list(title = "Topics")) %>%
+      plotly::config(
+        scrollZoom = TRUE,
+        displaylogo = FALSE,
+        edits = list(
+          shapePosition = TRUE,
+          annotation = TRUE
+        )
+      )
+  }
+ 
+  
+  
   # ----
 
   # cluster labelling ----
@@ -152,7 +179,9 @@ for (i in 1:nrow(cluster_lookup)) {
     font = list(size = 30,
                 # family = "Helvetica",
                 family = "Cinzel",
-                color = adjusted_colours_darker_1[as.numeric(cluster_lookup$cluster[i])])
+                # color = adjusted_colours_darker_1[as.numeric(cluster_lookup$cluster[i])]
+                color = "#4E5180"
+                )
   )
 }
   # ----

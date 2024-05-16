@@ -64,8 +64,9 @@ process_sentences <- function(doc_id, example_sentences) {
     mutate(test_text = case_when(
       is.na(cosine_sim) ~ text_copy,
       TRUE ~ test_text
-    )) %>%  mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
-    select(document, text_with_breaks, highlighted)
+    )) %>% mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
+    mutate(row_id = row_number()) %>% 
+    select(row_id, text = text_with_breaks, highlighted)
 }
 
 generate_topic_colours <- function(example_sentences_2) {

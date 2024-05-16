@@ -50,22 +50,22 @@ insert_line_breaks <- function(text, n = 10) {
 createUmap <- function(df, tracking_id, title){
   
   # colour functions ----
-  colours <- brewer.pal(n = length(unique(df()$clusters)), name = "Set1")
+  colours <- RColorBrewer::brewer.pal(n = length(unique(df()$clusters)), name = "Set1")
 
-  adjusted_colours_lighter_0.6 <- map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
-  adjusted_colours_lighter_0.05 <- map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05))
-  adjusted_colours_darker_1 <- map_chr(colours, ~adjust_colour_darker(.x, og_val = 1)) ## for labels
+  adjusted_colours_lighter_0.6 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
+  adjusted_colours_lighter_0.05 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05))
+  adjusted_colours_darker_1 <- purrr::map_chr(colours, ~adjust_colour_darker(.x, og_val = 1)) ## for labels
   # ----
 
   # cluster labelling and colouring ----
   centroids <- df() %>%
-    group_by(clusters) %>%
-    summarise(
+    dplyr::group_by(clusters) %>%
+    dplyr::summarise(
       x = mean(v1),
       y = mean(v2)
     )
 
-  cluster_lookup <- tibble(
+  cluster_lookup <- tibble::tibble(
     cluster = seq_along(unique(df()$clusters)),
     label = unique(df()$clusters),
     centroid_x = centroids$x,
@@ -75,7 +75,7 @@ createUmap <- function(df, tracking_id, title){
 
   # plot ----
 p <- df() %>%
-  mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
+  dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
    plotly::plot_ly(x = ~v1,
                    y = ~v2,
                    width = 1000,
@@ -128,7 +128,7 @@ for (i in 1:nrow(cluster_lookup)) {
   formatted_label <- sprintf("<b>%s</b>", cluster_lookup$label[i])
 
   # Adding the shadow
-  p <- p %>% add_annotations(
+  p <- p %>% plotly::add_annotations(
     x = cluster_lookup$centroid_x[i] ,  # slight offset for the shadow
     y = cluster_lookup$centroid_y[i] ,  # slight offset for the shadow
     text = cluster_lookup$label[i],
@@ -144,7 +144,7 @@ for (i in 1:nrow(cluster_lookup)) {
   )
 
   # Adding the main annotation
-  p <- p %>% add_annotations(
+  p <- p %>% plotly::add_annotations(
     x = cluster_lookup$centroid_x[i],
     y = cluster_lookup$centroid_y[i],
     text = cluster_lookup$label[i],

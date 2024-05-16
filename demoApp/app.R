@@ -6,8 +6,8 @@ options(shiny.port = 7775)
 options(shiny.host = "127.0.0.1")
 
 # Source Business logic/helper functions
-source(here("R/helper_functions.R"))
-source(here("R/semantic_search_helper_functions.R"))
+source(here("demoApp/R/helper_functions.R"))
+source(here("demoApp/R/semantic_search_helper_functions.R"))
 
 # Source modules
 source(here("demoApp/modules/umap_module.R"))

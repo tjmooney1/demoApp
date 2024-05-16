@@ -891,10 +891,11 @@ adjust_colour_darker <- function(colour_hex, og_val) {
 }
   
   observeEvent(input$update_plot, {
+    
     search_term <- input$search_term
     cosine_threshold <- input$cosine_sim_thresholds
-    doc_id <- cosine_calculation_threshold_sentence(reference_statement = search_term,
-                                                    cosine_sim_threshold = cosine_threshold,
+    doc_id <- cosine_calculation_threshold_sentence(reference_statement = "search_term",
+                                                    cosine_sim_threshold = 0.3,
                                                     embedding_model = multi_qa_embedder,
                                                     sentence_matrix = multi_qa_matrix_sentences,
                                                     df = example_sentences)

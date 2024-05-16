@@ -44,6 +44,7 @@ create_tweet_embed <- function(permalink) {
   return(shiny::HTML(html))
 }
 
+
 # Reddit ---- 
 extract_subreddit <- function(permalink) stringr::str_extract(permalink, "/r/(\\w+)", group = 1)
 

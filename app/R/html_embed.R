@@ -34,7 +34,7 @@ create_tweet_embed <- function(permalink) {
   tweet_screen_name <- extract_tweet_screen_name(permalink)
   embedding_style <- style_embedding(height = 500)
   
-  tweet_blockquote <- get_tweet_blockquote(screen_name = screen_name, status_id = status_id)
+  tweet_blockquote <- get_tweet_blockquote(screen_name = tweet_screen_name, status_id = tweet_id)
   
   html <- paste0(
     embedding_style$start_div,

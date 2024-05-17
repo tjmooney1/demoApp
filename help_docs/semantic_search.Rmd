@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Background
 
 The purpose of this document is to experiment with performing semantic search over our documents.
-
+ 
 ## Load packages
 
 ```{r}

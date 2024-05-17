@@ -1,7 +1,13 @@
 server <- function(input, output, session) {
   
-  df <- dataUploadServer("data_upload_panel")
+  r <- shiny::reactiveValues()
   
-  umapServer("umap_panel", df)
+  df <- dataUploadServer("data_upload_panel", r)
+  
+  umapServer("umap_panel", r)
+  
+  # highlighted_df <- semantic_searchServer("semantic_serach_panel")
+
+
 }
 

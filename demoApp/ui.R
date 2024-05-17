@@ -8,7 +8,8 @@ ui <- shiny::fluidPage(
       bslib::layout_sidebar(
         sidebar = bslib::sidebar(
           dataUploadUi("data_upload_panel"),
-          open = FALSE),
+          semantic_search_UI("semantic_search_panel"),
+          open = TRUE),
         umapUi("umap_panel"),
         fillable = TRUE,
         fill = TRUE

@@ -1,21 +1,22 @@
 semantic_search_UI <- function(id) {
   
   tagList(
-    sidebarPanel(
+    # sidebarPanel(
     textInput(NS(id, "search_term"), "Enter search term:", value = "AI art"),
     numericInput(NS(id, "cosine_sim_thresholds"), "Cosine similarity threshold", value = 0.3, min = 0, max = 1),
     actionButton(NS(id, "update_plot"), "Update Plot")
-    ))
+    # )
+  )
 }
 
 semantic_searchServer <- function(id) {
   
   moduleServer(id, function(input, output, session) {
     
-    source("~/Documents/git-repos/demoApp/demoApp/R/semantic_search_helper_functions.R")
-    example_sentences <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/displayr_example_sentences.csv")
+    # source("~/Documents/git-repos/demoApp/demoApp/R/semantic_search_helper_functions.R")
+    example_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/displayr_example_sentences.csv")
 
-    multi_qa_matrix_sentences <- read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings_sentences.rds")
+    multi_qa_matrix_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings_sentences.rds")
     
     # Reactive values to store intermediate data
     reactive_vals <- reactiveValues(

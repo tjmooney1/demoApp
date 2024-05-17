@@ -7,7 +7,7 @@ highlight_sentences <- function(text, sentences) {
   for (sentence in sentences) {
     highlighted_sentence <- paste0("<b>", sentence, "</b>")
     
-    text <- str_replace_all(text, fixed(sentence), highlighted_sentence)
+    text <- stringr::str_replace_all(text, stringr::fixed(sentence), highlighted_sentence)
   }
   
   return(text)
@@ -50,22 +50,22 @@ adjust_colour_darker <- function(colour_hex, og_val) {
 process_sentences <- function(doc_id, example_sentences) {
   doc_id %>%
     group_by(document) %>% # Change to appropriate document column
-    mutate(
+    dplyr::mutate(
       sentences = list(sentence),
       text_copy = first(text_copy) # Change to appropriate text column
     ) %>%
     ungroup() %>%
-    mutate(test_text = map2_chr(text_copy, sentences, highlight_sentences)) %>%
+    dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
     distinct(document, .keep_all = TRUE) %>% # Change to appropriate document column
     right_join(example_sentences) %>%
-    mutate(highlighted = case_when(is.na(cosine_sim) ~ FALSE,
+    dplyr::mutate(highlighted = case_when(is.na(cosine_sim) ~ FALSE,
                                    T ~ TRUE)) %>% # Change to appropriate document column
     distinct(document, .keep_all = TRUE) %>%
-    mutate(test_text = case_when(
+    dplyr::mutate(test_text = case_when(
       is.na(cosine_sim) ~ text_copy,
       TRUE ~ test_text
-    )) %>% mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
-    mutate(row_id = row_number()) %>% 
+    )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
+    dplyr::mutate(row_id = row_number()) %>% 
     select(row_id, text = text_with_breaks, highlighted)
 }
 
@@ -82,18 +82,18 @@ generate_topic_colours <- function(example_sentences_2) {
 # Function to prepare example data
 prepare_example_data <- function(example_sentences_2, topic_colours) {
   example_sentences_2 %>%
-    mutate(colour_mapped = if_else(new_colour == "#cccccc", "#cccccc", topic_colours[new_colour])) %>%
-    mutate(text_with_breaks = sapply(test_text, insert_line_breaks))
+    dplyr::mutate(colour_mapped = if_else(new_colour == "#cccccc", "#cccccc", topic_colours[new_colour])) %>%
+    dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks))
 }
 
 # Function to filter grey points
 filter_grey_points <- function(example) {
-  example %>% filter(new_colour == "#cccccc") %>% mutate(opacity = 0.2)
+  example %>% filter(new_colour == "#cccccc") %>% dplyr::mutate(opacity = 0.2)
 }
 
 # Function to filter highlight points
 filter_highlight_points <- function(example) {
-  example %>% filter(new_colour != "#cccccc") %>% mutate(opacity = 1)
+  example %>% filter(new_colour != "#cccccc") %>% dplyr::mutate(opacity = 1)
 }
 
 # Function to generate cluster lookup
@@ -129,7 +129,7 @@ cosine_calculation_threshold_sentence <- function(reference_statement,
   sentence_cosine_sims <- sentence_dot_products / (sentence_norm_matrix * reference_norm)
   
   current_sentence_candidates <- df %>%
-    mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
+    dplyr::mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
     relocate(cosine_sim) %>%
     filter(cosine_sim > cosine_sim_threshold) %>%
     arrange(desc(cosine_sim))

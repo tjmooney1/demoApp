@@ -14,6 +14,7 @@ ui <- shiny::fluidPage(
         fillable = TRUE,
         fill = TRUE
       )
-    )
+    ),
+    embed_text_ui("embed_text_panel")
   )
 )

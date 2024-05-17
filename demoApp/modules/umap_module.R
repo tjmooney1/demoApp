@@ -5,19 +5,19 @@
 #' @noRd
 umapUi <- function(id){
   ns <- shiny::NS(id)
-  shiny::tagList(
-    shiny::div(style = "position: absolute; top: 0.5; right: 0;",
-               shinyWidgets::prettySwitch(
-                 inputId = ns("plot_selection"),
-                 label = "Cluster View"
-               )
-    ),
-    shiny::div(style = "position: absolute; top: 1; right: 0;",
-               shiny::uiOutput(ns("display_plot")),
-               shiny::tags$img(src ="share_logo.png", align = "left",
-                               width = "200.42px", height = "70.42px")
-    ),
-  )
+    htmltools::div(
+      # style = "position: absolute; top: 1; right: 0;",
+      shinycssloaders::withSpinner( 
+        shiny::uiOutput(ns("display_plot"))
+      ),
+      htmltools::div(
+        style = "position: absolute; top: 0; right: -0.1;",
+                   shinyWidgets::prettySwitch(
+                     inputId = ns("plot_selection"),
+                     label = "Cluster View"
+                   )
+      )
+    )
 }
 
 #' UMAP server function

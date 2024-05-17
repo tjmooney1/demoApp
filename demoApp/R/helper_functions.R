@@ -75,24 +75,13 @@ createUmap <- function(r){
 
   # plot ----
 
-  # p <- plotly::plotly() %>%
-  #   plotly::add_trace(data = ~df(),
-  #                     x = ~V1, y = ~V2,
-  #                     type = "scattergl",
-  #                     mode = "markers",
-  #                     width = 1000, height = 700,
-  #                     colors = colours,
-  #                     marker = list(opacity = 0.7),
-  #                     hoverinfo ="text",
-  #                     text = ~text_with_breaks)
-  
   if(is.null(r$highlight_df)){
 
     p <- r$df() %>%
       dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
       plotly::plot_ly(x = ~V1,
                       y = ~V2,
-                      width = 1000, height = 700,
+                      width = 900, height = 700,
                       color = ~topic,
                       customdata = ~rowid,
                       type = "scattergl",
@@ -111,7 +100,7 @@ createUmap <- function(r){
     DT::datatable(grey_points)
     DT::datatable(highlight_points)
 
-    p <- plotly::plot_ly(width = 1000, height = 700,) %>%
+    p <- plotly::plot_ly(width = 900, height = 700,) %>%
       plotly::add_trace(data = grey_points,
                 x = ~V1, y = ~V2,
                 type = "scattergl",
@@ -137,16 +126,9 @@ createUmap <- function(r){
             paper_bgcolor = "rgba(0, 0, 0, 0)"
           )
   }
+
   
-  # if (!is.null(highlight_points)){
-  #  
-  #     
-  # } else{
-  # 
-  # }
-  
-  
-  p %>%
+  p <- p %>%
     plotly::layout(dragmode = "lasso",
                    xaxis = list(
                      showgrid = FALSE,
@@ -215,21 +197,21 @@ for (i in 1:nrow(cluster_lookup)) {
   # ----
   
   # styling for cluster labelling: This is not at all a finished product ----
-  badge_css = "
-    border-radius:6px;
-    width:fit-content;
-    max-width:75%;
-    margin:2px;
-    padding: 2px 10px 2px 10px;
-    font-size: 10pt;
-"
-  hover_text_template = "
-<div>
-    <div style=\"font-size:12pt;padding:2px;\">{{hover_text}}</div>
-    <div style=\"background-color:{{color}};color:#fff;{badge_css}\">{{primary_field}}</div>
-    <div style=\"background-color:#eeeeeeff;{badge_css}\">citation count: {{citation_count}}</div>
-    </div>
-    "
+#   badge_css = "
+#     border-radius:6px;
+#     width:fit-content;
+#     max-width:75%;
+#     margin:2px;
+#     padding: 2px 10px 2px 10px;
+#     font-size: 10pt;
+# "
+#   hover_text_template = "
+# <div>
+#     <div style=\"font-size:12pt;padding:2px;\">{{hover_text}}</div>
+#     <div style=\"background-color:{{color}};color:#fff;{badge_css}\">{{primary_field}}</div>
+#     <div style=\"background-color:#eeeeeeff;{badge_css}\">citation count: {{citation_count}}</div>
+#     </div>
+#     "
 
 return(p)
 

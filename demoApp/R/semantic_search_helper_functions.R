@@ -120,13 +120,13 @@ embed_query <- function(query, embedding_model) {
   endpoint_hf_st <- embedding_model
   
   # Create the request
-  response <- request(base_hf_st_url) %>%
-    req_url_path_append(endpoint_hf_st) %>% 
-    req_headers(
+  response <- httr2::request(base_hf_st_url) %>%
+    httr2::req_url_path_append(endpoint_hf_st) %>% 
+    httr2::req_headers(
       "Authorization" = paste("Bearer", api_token)
     ) %>%
-    req_body_json(query) %>%
-    req_perform()
+    httr2::req_body_json(query) %>%
+    httr2::req_perform()
   
   data <- resp_body_json(response) %>% 
     unlist() %>% 

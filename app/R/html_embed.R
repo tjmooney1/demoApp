@@ -109,3 +109,12 @@ create_list_embed <- function(permalinks) {
   return(list_embeds)
   
 }
+
+
+reverse_link_click_html <- function(permalinks) {
+  
+  permalinks <- stringr::str_remove_all(permalinks, "<a href='")
+  permalinks <- stringr::str_remove_all(permalinks, "' target=.*")
+  
+  return(permalinks)
+}

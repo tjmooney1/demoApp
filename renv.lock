@@ -800,6 +800,11 @@
       ],
       "Hash": "ac107251d9d9fd72f0ca8049988f1d7f"
     },
+    "httr2": {
+      "Package": "httr2",
+      "Version": "1.0.1",
+      "Source": "Repository"
+    },
     "ids": {
       "Package": "ids",
       "Version": "1.0.1",

@@ -2,7 +2,7 @@ server <- function(input, output, session) {
   
   r <- shiny::reactiveValues()
   
-  df <- dataUploadServer("data_upload_panel", r)
+  dataUploadServer("data_upload_panel", r)
   
   umapServer("umap_panel", r)
   

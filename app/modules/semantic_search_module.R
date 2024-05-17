@@ -33,7 +33,7 @@ semantic_searchServer <- function(id) {
       cosine_calculation_threshold_sentence(
         reference_statement = input$search_term,
         cosine_sim_threshold = input$cosine_sim_thresholds,
-        embedding_model = multi_qa_embedder,
+        embedding_model = "multi-qa-mpnet-base-cos-v1",
         sentence_matrix = multi_qa_matrix_sentences,
         df = example_sentences
       ) %>% 

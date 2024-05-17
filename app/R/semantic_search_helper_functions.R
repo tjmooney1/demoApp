@@ -109,6 +109,33 @@ generate_cluster_lookup <- function(example) {
 }
 
 
+# Embed query -------------------------------------------------------------
+
+embed_query <- function(query, embedding_model) {
+  
+  api_token <- Sys.getenv("HUGGINGFACE_API_KEY")
+  
+  base_hf_st_url <- "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/"
+  
+  endpoint_hf_st <- embedding_model
+  
+  # Create the request
+  response <- request(base_hf_st_url) %>%
+    req_url_path_append(endpoint_hf_st) %>% 
+    req_headers(
+      "Authorization" = paste("Bearer", api_token)
+    ) %>%
+    req_body_json(query) %>%
+    req_perform()
+  
+  data <- resp_body_json(response) %>% 
+    unlist() %>% 
+    as.matrix()
+  
+  return(data)
+}
+
+
 # Cosine similarity calculation -------------------------------------------
 
 cosine_calculation_threshold_sentence <- function(reference_statement,
@@ -118,7 +145,7 @@ cosine_calculation_threshold_sentence <- function(reference_statement,
                                                   df) {
   ref_sentence <- reference_statement
   
-  reference_vector <- bt_do_embedding(embedding_model, ref_sentence)
+  reference_vector <- embed_query(query = ref_sentence, embedding_model = embedding_model)
   
   sentence_dot_products <- sentence_matrix %*% reference_vector
   

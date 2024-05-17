@@ -724,6 +724,7 @@ bm25_results %>% DT::datatable()
 
 ```{r}
 example_sentences <- example %>% 
+  mutate(row_id = row_number()) %>% 
   unnest_tokens(output = sentence,
                 input = text_copy, 
                 token = "sentences",
@@ -940,17 +941,20 @@ adjust_colour_darker <- function(colour_hex, og_val) {
                 type = 'scattergl',
                 mode = 'markers',
                 marker = list(color = ~colour_mapped, opacity = ~opacity),
-                hoverinfo = "text",
-                text = ~text_with_breaks) %>%
+                hoverinfo = FALSE
+                # text = ~text_with_breaks
+                ) %>%
       add_trace(data = highlight_points,
                 x = ~V1, y = ~V2,
                 type = 'scattergl',
                 mode = 'markers',
                 marker = list(color = ~colour_mapped, opacity = ~opacity, size = 10),
                 hoverinfo = "text",
-                text = ~text_with_breaks) %>%
+                text = ~text_with_breaks
+                ) %>%
       config(scrollZoom = TRUE) %>%
       layout(
+        hoverdistance=100,
         showlegend = FALSE,
         xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),
         yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title = ""),

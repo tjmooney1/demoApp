@@ -1,6 +1,8 @@
 embed_text_ui <- function(id){
   tagList(
-    
+    shiny::fluidRow(
+      shiny::uiOutput(NS("embeddedTexts"))
+    )
   )
 }
 

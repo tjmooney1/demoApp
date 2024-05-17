@@ -30,19 +30,6 @@ semantic_searchServer <- function(id, r) {
       topic_colours = NULL
     )
     
-    # Reactive expression to calculate document IDs based on input
-    # semantic_similarity_output <- shiny::eventReactive(input$update_plot, {
-    #   print("searching")
-    #   cosine_calculation_threshold_sentence(
-    #     reference_statement = input$search_term,
-    #     cosine_sim_threshold = input$cosine_sim_thresholds,
-    #     embedding_model = multi_qa_embedder,
-    #     sentence_matrix = multi_qa_matrix_sentences,
-    #     df = example_sentences
-    #   ) %>%
-    #   process_sentences(example_sentences)
-    # })
-    # 
     observeEvent(input$update_plot, {
       print("searching")
         semantic_similarity_output <- cosine_calculation_threshold_sentence(
@@ -58,10 +45,6 @@ semantic_searchServer <- function(id, r) {
 
     })
     
-    # observe({
-    #   invalidateLater(2000)
-    #   print(head(r$highlight_df()))
-    # })
     
     })
   }

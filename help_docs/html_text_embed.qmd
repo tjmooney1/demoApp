@@ -152,5 +152,25 @@ bslib::layout_column_wrap(1/3, .tmp_insta, .tmp_insta, .tmp_insta)
 ```
 
 ```{r}
+r_pl %>% extract_source()
 
+embed_switch(r_pl) %>% bslib::card()
+embed_switch(i_pl) %>% bslib::card()
+embed_switch(t_pl) %>% bslib::card()
 ```
+
+```{r}
+list_pl <- list(i_pl, r_pl, t_pl)
+
+list_e <- lapply(list_pl, function(x) {
+  embed_switch(x)
+})
+
+class(list_e)
+do.call(bslib::layout_column_wrap, c(width = 1/3, list_e))
+```
+
+
+```{r}
+```
+

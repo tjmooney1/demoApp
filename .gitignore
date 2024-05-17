@@ -5,3 +5,5 @@
 *.Rproj
 *.html
 *_files*
+.Renviron
+

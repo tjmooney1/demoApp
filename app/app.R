@@ -1,3 +1,8 @@
+# this is for local use of an application - not for deployment. 
+# when deploying with the multiple file set up (ui.R, server.R)
+# you need to ensure your scripts etc. are all sourced - good place for this
+# is global.R which is automatically sourced.
+
 library(shiny)
 library(here)
 library(magrittr)

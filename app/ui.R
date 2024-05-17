@@ -16,5 +16,4 @@ ui <- shiny::fluidPage(
       )
     )
   )
- 
 )

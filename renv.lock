@@ -48,6 +48,11 @@
       ],
       "Hash": "1a00d4828f33a9d690806e98bd17150c"
     },
+    "PKI": {
+      "Package": "PKI",
+      "Version": "0.1-12",
+      "Source": "Repository"
+    },
     "R6": {
       "Package": "R6",
       "Version": "2.5.1",
@@ -722,6 +727,11 @@
       ],
       "Hash": "ea2475b073243d9d338aa8f086ce973e"
     },
+    "packrat": {
+      "Package": "packrat",
+      "Version": "0.9.2",
+      "Source": "Repository"
+    },
     "pillar": {
       "Package": "pillar",
       "Version": "1.9.0",
@@ -922,6 +932,16 @@
         "R"
       ],
       "Hash": "4c8415e0ec1e29f3f4f6fc108bef0144"
+    },
+    "rsconnect": {
+      "Package": "rsconnect",
+      "Version": "1.2.2",
+      "Source": "Repository"
+    },
+    "rstudioapi": {
+      "Package": "rstudioapi",
+      "Version": "0.16.0",
+      "Source": "Repository"
     },
     "sass": {
       "Package": "sass",

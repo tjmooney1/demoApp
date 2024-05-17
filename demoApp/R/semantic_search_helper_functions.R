@@ -22,30 +22,30 @@ insert_line_breaks <- function(text, n = 10) {
         collapse = "<br>")
   
 }
-
-adjust_colour_lighter <- function(colour_hex, og_val) {
-  
-  rgb_vals <- col2rgb(colour_hex)
-  
-  rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
-  
-  rgb_new <- pmin(rgb_new, 255)
-  
-  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
-  return(new_colour_hex)
-}
-
-adjust_colour_darker <- function(colour_hex, og_val) {
-  
-  rgb_vals <- col2rgb(colour_hex)
-  
-  rgb_new <- rgb_vals * og_val
-  
-  rgb_new <- pmax(rgb_new, 0)
-  
-  new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
-  return(new_colour_hex)
-}
+# 
+# adjust_colour_lighter <- function(colour_hex, og_val) {
+#   
+#   rgb_vals <- col2rgb(colour_hex)
+#   
+#   rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
+#   
+#   rgb_new <- pmin(rgb_new, 255)
+#   
+#   new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+#   return(new_colour_hex)
+# }
+# 
+# adjust_colour_darker <- function(colour_hex, og_val) {
+#   
+#   rgb_vals <- col2rgb(colour_hex)
+#   
+#   rgb_new <- rgb_vals * og_val
+#   
+#   rgb_new <- pmax(rgb_new, 0)
+#   
+#   new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
+#   return(new_colour_hex)
+# }
 
 process_sentences <- function(doc_id, example_sentences) {
   doc_id %>%
@@ -59,25 +59,25 @@ process_sentences <- function(doc_id, example_sentences) {
     distinct(document, .keep_all = TRUE) %>% # Change to appropriate document column
     right_join(example_sentences) %>%
     dplyr::mutate(highlighted = case_when(is.na(cosine_sim) ~ FALSE,
-                                   T ~ TRUE)) %>% # Change to appropriate document column
+                                          T ~ TRUE)) %>% # Change to appropriate document column
     distinct(document, .keep_all = TRUE) %>%
     dplyr::mutate(test_text = case_when(
       is.na(cosine_sim) ~ text_copy,
       TRUE ~ test_text
     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
-    dplyr::mutate(row_id = row_number()) %>% 
-    select(row_id, text = text_with_breaks, highlighted)
+    # dplyr::mutate(row_id = row_number()) %>% 
+    select(rowid, text = text_with_breaks, highlighted, V1, V2, rowid, topic)
 }
 
-generate_topic_colours <- function(example_sentences_2) {
-  k <- n_distinct(example_sentences_2$topic)
-  
-  eg_colours <- viridis::viridis(k)
-  
-  adjusted_colours_lighter_0.5 <- map_chr(eg_colours, ~adjust_colour_lighter(.x, og_val = 0.5))
-  
-  setNames(adjusted_colours_lighter_0.5, unique(example_sentences_2$topic))
-}
+# generate_topic_colours <- function(example_sentences_2) {
+#   k <- n_distinct(example_sentences_2$topic)
+#   
+#   eg_colours <- viridis::viridis(k)
+#   
+#   adjusted_colours_lighter_0.5 <- map_chr(eg_colours, ~adjust_colour_lighter(.x, og_val = 0.5))
+#   
+#   setNames(adjusted_colours_lighter_0.5, unique(example_sentences_2$topic))
+# }
 
 # Function to prepare example data
 prepare_example_data <- function(example_sentences_2, topic_colours) {

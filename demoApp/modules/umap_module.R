@@ -38,7 +38,7 @@ umapServer <- function(id, r){
     })
     
     output$umap_plot <- plotly::renderPlotly({
-      createUmap(df = r$df)
+      createUmap(r)
     })
     
    

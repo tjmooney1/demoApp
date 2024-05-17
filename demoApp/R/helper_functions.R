@@ -47,14 +47,10 @@ insert_line_breaks <- function(text, n = 10) {
 #'
 #' @noRd
 #' 
-createUmap <- function(df, highlight_points = NULL){
-  
-  # if (nrow(highligh))
-  
+createUmap <- function(r){
   
   # colour functions ----
-  # colours <- RColorBrewer::brewer.pal(n = length(unique(df()$topic)), name = "Set1")
-  colours <- viridis::viridis(n = length(unique(df()$topic)), begin = 0, end = 0.92, direction = 1)
+  colours <- viridis::viridis(n = length(unique(r$df()$topic)), begin = 0, end = 0.92, direction = 1)
 
   adjusted_colours_lighter_0.6 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
   adjusted_colours_lighter_0.05 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05))
@@ -62,7 +58,7 @@ createUmap <- function(df, highlight_points = NULL){
   # ----
 
   # cluster labelling and colouring ----
-  centroids <- df() %>%
+  centroids <- r$df() %>%
     dplyr::group_by(topic) %>%
     dplyr::summarise(
       x = mean(V1),
@@ -70,46 +66,33 @@ createUmap <- function(df, highlight_points = NULL){
     )
 
   cluster_lookup <- tibble::tibble(
-    cluster = seq_along(unique(df()$topic)),
-    label = unique(df()$topic),
+    cluster = seq_along(unique(r$df()$topic)),
+    label = unique(r$df()$topic),
     centroid_x = centroids$x,
     centroid_y = centroids$y
   )
   # ----
 
   # plot ----
+
+  # p <- plotly::plotly() %>%
+  #   plotly::add_trace(data = ~df(),
+  #                     x = ~V1, y = ~V2,
+  #                     type = "scattergl",
+  #                     mode = "markers",
+  #                     width = 1000, height = 700,
+  #                     colors = colours,
+  #                     marker = list(opacity = 0.7),
+  #                     hoverinfo ="text",
+  #                     text = ~text_with_breaks)
   
-  if (!is.null(highlight_points)){
-    p <- plot_ly() %>%
-      add_trace(data = grey_points,
-                x = ~V1, y = ~V2,
-                type = "scattergl",
-                mode = "markers",
-                marker = list(color = ~colour_mapped, opacity = ~opacity),
-                hoverinfo ="text",
-                text = ~text_with_breaks) %>%
-      add_trace(data = highlight_points,
-                x = ~V1, y = ~V2,
-                type = "scattergl",
-                mode = "markers",
-                marker = list(color = ~colour_mapped, opacity = ~opacity, size = 10),
-                hoverinfo ="text",
-                text = ~text_with_breaks) %>%
-      config(scrollZoom = TRUE) %>%
-      layout(
-        showlegend = FALSE,
-        xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
-        yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
-        plot_bgcolor = "rgba(0, 0, 0, 0)",
-        paper_bgcolor = "rgba(0, 0, 0, 0)"
-      )
-  } else{
-    p <- df() %>%
+  if(is.null(r$highlight_df)){
+
+    p <- r$df() %>%
       dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
       plotly::plot_ly(x = ~V1,
                       y = ~V2,
-                      width = 1000,
-                      height = 700,
+                      width = 1000, height = 700,
                       color = ~topic,
                       customdata = ~rowid,
                       type = "scattergl",
@@ -118,35 +101,79 @@ createUmap <- function(df, highlight_points = NULL){
                       hoverinfo = "text",
                       colors = adjusted_colours_lighter_0.6,
                       marker = list(opacity = 0.7),  # Adjust marker size and opacity
-                      source = "umap_plot") %>%
-      plotly::layout(dragmode = "lasso",
-                     xaxis = list(
-                       showgrid = FALSE,
-                       showline = FALSE,
-                       zeroline = FALSE,
-                       showticklabels = FALSE,
-                       visile = FALSE,
-                       title = ""
-                     ),
-                     yaxis = list(
-                       showgrid = FALSE,
-                       showline = FALSE,
-                       zeroline = FALSE,
-                       showticklabels = FALSE,
-                       visile = FALSE,
-                       title = ""
-                     ),
-                     showlegend = TRUE,
-                     legend = list(title = "Topics")) %>%
-      plotly::config(
-        scrollZoom = TRUE,
-        displaylogo = FALSE,
-        edits = list(
-          shapePosition = TRUE,
-          annotation = TRUE
-        )
-      )
+                      source = "umap_plot") 
+  } else {
+    # Keep only rows from df1 that do not have a match in df2
+    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ] %>%
+      dplyr::mutate(colour = "grey80")
+    highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ]
+
+    DT::datatable(grey_points)
+    DT::datatable(highlight_points)
+
+    p <- plotly::plot_ly(width = 1000, height = 700,) %>%
+      plotly::add_trace(data = grey_points,
+                x = ~V1, y = ~V2,
+                type = "scattergl",
+                mode = "markers",
+                marker = list(opacity = 0.7, color = ~colour),
+                # marker = list(color = ~colour_mapped, opacity = ~opacity),
+                hoverinfo = "skip") %>%
+      plotly::add_trace(data = highlight_points,
+                x = ~V1, y = ~V2,
+                type = "scattergl",
+                mode = "markers",
+                color = ~topic,
+                marker = list(opacity = 0.7, color = adjusted_colours_lighter_0.6),
+                # marker = list(color = ~colour_mapped, opacity = ~opacity, size = 10),
+                hoverinfo ="text",
+                text = ~text) %>%
+      config(scrollZoom = TRUE) %>%
+          layout(
+            showlegend = FALSE,
+            xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
+            yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
+            plot_bgcolor = "rgba(0, 0, 0, 0)",
+            paper_bgcolor = "rgba(0, 0, 0, 0)"
+          )
   }
+  
+  # if (!is.null(highlight_points)){
+  #  
+  #     
+  # } else{
+  # 
+  # }
+  
+  
+  p %>%
+    plotly::layout(dragmode = "lasso",
+                   xaxis = list(
+                     showgrid = FALSE,
+                     showline = FALSE,
+                     zeroline = FALSE,
+                     showticklabels = FALSE,
+                     visile = FALSE,
+                     title = ""
+                   ),
+                   yaxis = list(
+                     showgrid = FALSE,
+                     showline = FALSE,
+                     zeroline = FALSE,
+                     showticklabels = FALSE,
+                     visile = FALSE,
+                     title = ""
+                   ),
+                   showlegend = TRUE,
+                   legend = list(title = "Topics")) %>%
+    plotly::config(
+      scrollZoom = TRUE,
+      displaylogo = FALSE,
+      edits = list(
+        shapePosition = TRUE,
+        annotation = TRUE
+      )
+    )
  
   
   

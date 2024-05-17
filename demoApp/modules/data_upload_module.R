@@ -31,7 +31,8 @@ dataUploadServer <- function(id, r){
     
     df <- reactive({
       data <- readr::read_rds(here("data/example_data.rds")) %>%
-        dplyr::mutate(rowid = dplyr::row_number())
+        dplyr::mutate(rowid = dplyr::row_number(),
+                      highlighted = TRUE)
       
 
       

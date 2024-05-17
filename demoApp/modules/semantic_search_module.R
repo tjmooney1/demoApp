@@ -1,20 +1,22 @@
 semantic_search_UI <- function(id) {
   
-  tagList(
+  shiny::tagList(
     # sidebarPanel(
-    textInput(NS(id, "search_term"), "Enter search term:", value = "AI art"),
-    numericInput(NS(id, "cosine_sim_thresholds"), "Cosine similarity threshold", value = 0.3, min = 0, max = 1),
-    actionButton(NS(id, "update_plot"), "Update Plot")
+    shiny::textInput(NS(id, "search_term"), "Enter search term:", value = "AI art"),
+    shiny::numericInput(NS(id, "cosine_sim_thresholds"), "Cosine similarity threshold", value = 0.3, min = 0, max = 1, step = 0.1),
+    shiny::actionButton(NS(id, "update_plot"), "Update Plot")
     # )
   )
 }
 
-semantic_searchServer <- function(id) {
+semantic_searchServer <- function(id, r) {
   
   moduleServer(id, function(input, output, session) {
+    ns <- session$ns
     
     # source("~/Documents/git-repos/demoApp/demoApp/R/semantic_search_helper_functions.R")
-    example_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/displayr_example_sentences.csv")
+    example_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/displayr_example_sentences.csv") %>%
+      dplyr::rename(rowid = row_id)
 
     multi_qa_matrix_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/semantic_search_data/example_multi-qa_embeddings_sentences.rds")
     
@@ -29,18 +31,37 @@ semantic_searchServer <- function(id) {
     )
     
     # Reactive expression to calculate document IDs based on input
-    semantic_similarity_output <- reactive({
-      cosine_calculation_threshold_sentence(
-        reference_statement = input$search_term,
-        cosine_sim_threshold = input$cosine_sim_thresholds,
-        embedding_model = multi_qa_embedder,
-        sentence_matrix = multi_qa_matrix_sentences,
-        df = example_sentences
-      ) %>% 
+    # semantic_similarity_output <- shiny::eventReactive(input$update_plot, {
+    #   print("searching")
+    #   cosine_calculation_threshold_sentence(
+    #     reference_statement = input$search_term,
+    #     cosine_sim_threshold = input$cosine_sim_thresholds,
+    #     embedding_model = multi_qa_embedder,
+    #     sentence_matrix = multi_qa_matrix_sentences,
+    #     df = example_sentences
+    #   ) %>%
+    #   process_sentences(example_sentences)
+    # })
+    # 
+    observeEvent(input$update_plot, {
+      print("searching")
+        semantic_similarity_output <- cosine_calculation_threshold_sentence(
+          reference_statement = input$search_term,
+          cosine_sim_threshold = input$cosine_sim_thresholds,
+          embedding_model = multi_qa_embedder,
+          sentence_matrix = multi_qa_matrix_sentences,
+          df = example_sentences
+        ) %>%
         process_sentences(example_sentences)
+        
+      r$highlight_df <- shiny::reactive({semantic_similarity_output})
+
     })
     
-    return(semantic_similarity_output)
+    # observe({
+    #   invalidateLater(2000)
+    #   print(head(r$highlight_df()))
+    # })
     
     })
   }

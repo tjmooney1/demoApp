@@ -21,4 +21,10 @@ source(here("demoApp/modules/semantic_search_module.R"))
 source(here("demoApp/ui.R"))
 source(here("demoApp/server.R"))
 
-shinyApp(ui, server)
+
+# Run an app the IDE way if in an interactive session, else run it the terminal/deployment way:
+if(interactive()){
+  shinyApp(ui, server)
+} else {
+  runApp(here("demoApp"))
+}

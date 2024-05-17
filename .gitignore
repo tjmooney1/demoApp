@@ -5,4 +5,5 @@
 *.Rproj
 *.html
 *_files*
-.DS_Store
+.Renviron
+

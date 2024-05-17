@@ -6,12 +6,12 @@ output: html_document
 ---
 
 # Overview
-The purpose of this document was to first explore how bits of the SQLite X R integration packages work and then to attempt functionising any code so that they can later be used in parts oft he workflow and server of the app, writing and querying files to/from a database.
+The purpose of this document was to first explore how bits of the SQLite X R integration packages work and then to attempt functionise any code so that they can later be used in parts oft he workflow and server of the app, writing and querying files to/from a database.
 
 Steps:
 - Create and connect to a dummy database locally
 - Load some dummy data from elsewhere
-- Write the dummy data to the dummy database and fucntionise code
+- Write the dummy data to the dummy database and functionise code
 - Query the data back into the session and functionise that process too
 
 load libraries
@@ -83,7 +83,7 @@ demoapp_writetoDB(data = df_automotive,
 ```{r}
 automotive_df_queried <- dbGetQuery(conn = database, "SELECT date, text, sentiment FROM automotive_df")
 ```
-#### Function for Retreiving Files
+#### Function for Retrieving Files
 ```{r}
 demoapp_queryDB <- function(selected_table = "",
                             database_dir = "",

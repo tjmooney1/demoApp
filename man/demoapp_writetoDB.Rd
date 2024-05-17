@@ -2,13 +2,13 @@
 % Please edit documentation in R/demoapp_writetoDB.R
 \name{demoapp_writetoDB}
 \alias{demoapp_writetoDB}
-\title{Write Files to a SQLite Database}
+\title{Connect and Write Files to a SQLite Database}
 \usage{
 demoapp_writetoDB(
   data,
   name = "",
-  database_dir = "",
-  overwrite = FALSE,
+  database_path = NULL,
+  overwrite = TRUE,
   append = FALSE
 )
 }
@@ -17,22 +17,21 @@ demoapp_writetoDB(
 
 \item{name}{A string representing the name of the table that the user wishes to write}
 
-\item{database_dir}{A string with the path directory to the database}
+\item{database_path}{A string with the path directory to the database, the default is set to whatever the current working directory is using \code{getwd()}, searching for \code{database.sqlite} in that project directory. Note: If the database does not yet exist, the function will write it as well as the file, and inform the user within the R console.}
 
 \item{overwrite}{A logical argument as to whether the user wishes to overwrite any existing data with the same name}
 
 \item{append}{A logical argument as to whether the user wishes to append new data on existing data with the same name}
 }
 \value{
-A retrievable data table in the desired database
+Writes a retrievable data table to a SQLite database
 }
 \description{
-Write Files to a SQLite Database
+Connect and Write Files to a SQLite Database
 }
 \examples{
 demoapp_writetoDB(data = df_automotive,
-name = "automotive_df",
-database_dir = "demoApp_db.sqlite",
-overwrite = FALSE,
-append = FALSE)
+ name = "automotive_df", 
+ overwrite = TRUE,
+  append = FALSE)
 }

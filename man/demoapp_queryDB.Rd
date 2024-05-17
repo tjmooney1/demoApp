@@ -2,28 +2,26 @@
 % Please edit documentation in R/demoapp_queryDB.R
 \name{demoapp_queryDB}
 \alias{demoapp_queryDB}
-\title{Query SQLite Database for Data}
+\title{Query SQLite Database for a Selected Data Table}
 \usage{
-demoapp_queryDB(selected_table = "", database_dir = "", columns)
+demoapp_queryDB(selected_table = "", database_path = NULL, columns = "all")
 }
 \arguments{
 \item{selected_table}{The table inside of the Database the user wishes to query}
 
-\item{database_dir}{A string with the path directory to the database}
+\item{database_path}{A string with the path directory to the database, the default is set to whatever the current working directory is using \code{getwd()}, searching for \code{database.sqlite} in that project directory.}
 
-\item{columns}{For if the user wishes to only query select columns, the default retrieves all columns or the user can select \code{columns = "all"}, but a character vector can be supplied like so: \code{columns = c("text", "sentiment", "permalink")} for being selective.}
+\item{columns}{For if the user wishes to only query select columns, the default retrieves all columns or the user can select \code{columns = "all"}, but a character vector can be supplied like so: \code{columns = c("text", "sentiment", "permalink")} if wanting to be selective.}
 }
 \value{
-The queried table as a data frame with selected columns if provided
+The queried data table from a selected SQLite database
 }
 \description{
-Query SQLite Database for Data
+Query SQLite Database for a Selected Data Table
 }
 \examples{
-automotive_df_queried <- demoapp_queryDB(selected_table = "automotive_df",
- database_dir = "demoApp_db.sqlite")
+automotive_df <- demoapp_queryDB(selected_table = "automotive_df")
 
-automotive_df_queried <- demoapp_queryDB(selected_table = "automotive_df",
- database_dir = "demoApp_db.sqlite",
+automotive_selected_cols <- demoapp_queryDB(selected_table = "automotive_df",
  columns = c("text", "sentiment", "permalink"))
 }

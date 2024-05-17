@@ -15,6 +15,7 @@ source(here("demoApp/R/html_embed.R"))
 # Source modules
 source(here("demoApp/modules/umap_module.R"))
 source(here("demoApp/modules/data_upload_module.R"))
+source(here("demoApp/modules/semantic_search_module.R"))
 
 # Source App Files
 source(here("demoApp/ui.R"))

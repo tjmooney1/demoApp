@@ -69,7 +69,6 @@ create_reddit_embed <- function(permalink){
   return(reddit_html)
 }
 
-
 # Instagram ----
 create_instagram_embed <- function(permalink) {
     
@@ -83,4 +82,30 @@ create_instagram_embed <- function(permalink) {
     <script async defer src="//www.instagram.com/embed.js"></script>', embedding_style$end_div)
     
     return(shiny::HTML(html))
+}
+
+# Switch ----
+embed_switch <- function(permalink) {
+  source <- extract_source(permalink)
+  
+  embed <- switch(
+    source,
+    "reddit" = create_reddit_embed(permalink),
+    "instagram" = create_instagram_embed(permalink),
+    "twitter" = create_tweet_embed(permalink)
+  )
+  
+  return(embed )
+}
+
+create_list_embed <- function(permalinks) {
+  
+  if(!inherits(permalink, "list") & !is.vector(permalinks)) message("Input should be a list or vector")
+  
+  list_embeds <- lapply(permalinks, function(x) {
+    embed_switch(x)
+  })
+  
+  return(list_embeds)
+  
 }

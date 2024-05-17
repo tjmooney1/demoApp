@@ -6,4 +6,5 @@
 *.html
 *_files*
 .Renviron
+.DS_Store
 

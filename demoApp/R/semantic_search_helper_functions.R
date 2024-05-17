@@ -114,7 +114,7 @@ generate_cluster_lookup <- function(example) {
 embed_query <- function(query, embedding_model) {
   
   api_token <- Sys.getenv("HUGGINGFACE_API_KEY")
-  
+
   base_hf_st_url <- "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/"
   
   endpoint_hf_st <- embedding_model
@@ -128,12 +128,14 @@ embed_query <- function(query, embedding_model) {
     httr2::req_body_json(query) %>%
     httr2::req_perform()
   
-  data <- resp_body_json(response) %>% 
+  data <- httr2::resp_body_json(response) %>% 
     unlist() %>% 
     as.matrix()
   
   return(data)
 }
+
+embed_query("test", "all-mpnet-base-v2")
 
 
 # Cosine similarity calculation -------------------------------------------

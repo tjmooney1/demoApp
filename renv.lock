@@ -548,6 +548,27 @@
       ],
       "Hash": "ac107251d9d9fd72f0ca8049988f1d7f"
     },
+    "httr2": {
+      "Package": "httr2",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "R6",
+        "cli",
+        "curl",
+        "glue",
+        "lifecycle",
+        "magrittr",
+        "openssl",
+        "rappdirs",
+        "rlang",
+        "vctrs",
+        "withr"
+      ],
+      "Hash": "03d741c92fda96d98c3a3f22494e3b4a"
+    },
     "isoband": {
       "Package": "isoband",
       "Version": "0.2.7",
@@ -1023,6 +1044,20 @@
         "shiny"
       ],
       "Hash": "bc918b6911c4e928e24a9928295de834"
+    },
+    "shinycssloaders": {
+      "Package": "shinycssloaders",
+      "Version": "1.0.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "digest",
+        "glue",
+        "grDevices",
+        "shiny"
+      ],
+      "Hash": "f39bb3c44a9b496723ec7e86f9a771d8"
     },
     "sourcetools": {
       "Package": "sourcetools",

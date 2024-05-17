@@ -55,6 +55,9 @@ createUmap <- function(r){
   adjusted_colours_lighter_0.6 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
   adjusted_colours_lighter_0.05 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05))
   adjusted_colours_darker_1 <- purrr::map_chr(colours, ~adjust_colour_darker(.x, og_val = 1)) ## for labels
+  
+  names(colours) <- unique(r$df()$topic)
+  print(colours)
   # ----
 
   # cluster labelling and colouring ----
@@ -65,20 +68,25 @@ createUmap <- function(r){
       y = mean(V2)
     )
 
-  cluster_lookup <- tibble::tibble(
-    cluster = seq_along(unique(r$df()$topic)),
-    label = unique(r$df()$topic),
-    centroid_x = centroids$x,
-    centroid_y = centroids$y
-  )
+  cluster_lookup <- r$df() %>%
+    group_by(topic) %>%
+    summarise(topic_number = cur_group_id(),
+              label = first(topic),
+              centroid_x = mean(V1),
+              centroid_y = mean(V2)) 
+  
   # ----
 
   # plot ----
 
   if(is.null(r$highlight_df)){
+    # plot_df <- r$df()
+    # plot_df$assigned_colour <- colours[r$df()$topic]
+    # print(plot_df %>% distinct(assigned_colour, topic))
 
     p <- r$df() %>%
-      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
+      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
+                    assigned_colour = colours[topic]) %>%
       plotly::plot_ly(x = ~V1,
                       y = ~V2,
                       width = 900, height = 700,
@@ -88,43 +96,39 @@ createUmap <- function(r){
                       mode = "markers",
                       text = ~text_with_breaks,
                       hoverinfo = "text",
-                      colors = adjusted_colours_lighter_0.6,
+                      # colors = adjusted_colours_lighter_0.6,
+                      colors = ~assigned_colour,
                       marker = list(opacity = 0.7),  # Adjust marker size and opacity
                       source = "umap_plot") 
   } else {
-    # Keep only rows from df1 that do not have a match in df2
-    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ] %>%
-      dplyr::mutate(colour = "grey80")
-    highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ]
+    
+    # r$highlight_df()["colours"] <- setcolours[r$highlight_df()$topic]
+    # r$highlight_df() <- r$highlight_df() %>%
+    #   mutate(assigned_colour = setcolours[topic])
+    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ]
+    highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ] %>%
+      dplyr::mutate(assigned_colour = colours[topic])
 
     DT::datatable(grey_points)
     DT::datatable(highlight_points)
 
-    p <- plotly::plot_ly(width = 900, height = 700,) %>%
+    p <- plotly::plot_ly(width = 900, height = 700) %>%
       plotly::add_trace(data = grey_points,
                 x = ~V1, y = ~V2,
                 type = "scattergl",
                 mode = "markers",
-                marker = list(opacity = 0.7, color = ~colour),
-                # marker = list(color = ~colour_mapped, opacity = ~opacity),
+                marker = list(opacity = 0.7, color = "#cccccc"),
                 hoverinfo = "skip") %>%
       plotly::add_trace(data = highlight_points,
                 x = ~V1, y = ~V2,
                 type = "scattergl",
                 mode = "markers",
                 color = ~topic,
-                marker = list(opacity = 0.7, color = adjusted_colours_lighter_0.6),
-                # marker = list(color = ~colour_mapped, opacity = ~opacity, size = 10),
+                marker = list(opacity = 0.7, 
+                              # color = adjusted_colours_lighter_0.6
+                              color = ~assigned_colour),
                 hoverinfo ="text",
-                text = ~text) %>%
-      config(scrollZoom = TRUE) %>%
-          layout(
-            showlegend = FALSE,
-            xaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
-            yaxis = list(showline = FALSE, showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE, title =""),
-            plot_bgcolor = "rgba(0, 0, 0, 0)",
-            paper_bgcolor = "rgba(0, 0, 0, 0)"
-          )
+                text = ~text) 
   }
 
   

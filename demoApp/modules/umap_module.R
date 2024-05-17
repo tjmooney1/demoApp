@@ -25,7 +25,7 @@ umapUi <- function(id){
 #' @param id param for shiny identification
 #'
 #' @noRd
-umapServer <- function(id, df){
+umapServer <- function(id, r){
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
@@ -38,14 +38,15 @@ umapServer <- function(id, df){
     })
     
     output$umap_plot <- plotly::renderPlotly({
-      createUmap(df = df,
-                 tracking_id = "test",
-                 title = "test")
+      createUmap(df = r$df)
     })
     
-    # output$raster_plot <- shiny::renderImage({
+   
     
-    # })
+    shiny::observeEvent(plotly::event_data("plotly_selected", source = "umap_plot"), {
+      r$selected_range <- plotly::event_data("plotly_selected", source = "umap_plot")$customdata
+    })
+
     
   })
 }

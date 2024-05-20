@@ -1079,6 +1079,11 @@
       ],
       "Hash": "f39bb3c44a9b496723ec7e86f9a771d8"
     },
+    "showtext": {
+      "Package": "showtext",
+      "Version": "0.9-7",
+      "Source": "Repository"
+    },
     "sourcetools": {
       "Package": "sourcetools",
       "Version": "0.1.7-1",

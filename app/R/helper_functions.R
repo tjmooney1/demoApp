@@ -138,7 +138,11 @@ createUmap <- function(r){
                      visile = FALSE,
                      title = ""
                    ),
-                   legend = list(title = "Topics")) %>%
+                   legend = list(
+                     orientation = "h",
+                     xanchor = "center",  # use center of legend as anchor
+                     x = 0.5
+                   )) %>%
     plotly::config(
       scrollZoom = TRUE,
       displaylogo = FALSE,
@@ -180,8 +184,8 @@ for (i in 1:nrow(cluster_lookup)) {
     showarrow = FALSE,
     font = list(size = 22,
                 family = "Cinzel",
-                # color = adjusted_colours_darker_1[as.numeric(cluster_lookup$cluster[i])]
-                color = "#4E5180"
+                color = adjusted_colours_darker_1[as.numeric(cluster_lookup$cluster[i])]
+                # color = "#4E5180"
                 )
   )
 }

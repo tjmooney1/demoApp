@@ -17,6 +17,5 @@ server <- function(input, output, session) {
   umapServer("umap_panel", r)
   
   semantic_searchServer("semantic_search_panel", r)
- 
 }
 

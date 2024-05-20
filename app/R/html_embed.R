@@ -34,7 +34,7 @@ create_tweet_embed <- function(permalink) {
   tweet_screen_name <- extract_tweet_screen_name(permalink)
   embedding_style <- style_embedding(height = 500)
   
-  tweet_blockquote <- get_tweet_blockquote(screen_name = screen_name, status_id = status_id)
+  tweet_blockquote <- get_tweet_blockquote(screen_name = tweet_screen_name, status_id = tweet_id)
   
   html <- paste0(
     embedding_style$start_div,
@@ -108,4 +108,13 @@ create_list_embed <- function(permalinks) {
   
   return(list_embeds)
   
+}
+
+
+reverse_link_click_html <- function(permalinks) {
+  
+  permalinks <- stringr::str_remove_all(permalinks, "<a href='")
+  permalinks <- stringr::str_remove_all(permalinks, "' target=.*")
+  
+  return(permalinks)
 }

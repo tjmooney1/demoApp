@@ -22,16 +22,6 @@ adjust_colour_darker <- function(colour_hex, og_val) {
   return(new_colour_hex)
 }
 
-
-createUmapTesting <- function(df, tracking_id, title){
-  if (is.reactive(df)){
-    # message("is reactive")
-    print(head(df()))
-  } else {
-    message("not reactive")
-  }
-}
-
 insert_line_breaks <- function(text, n = 10) {
   words <- strsplit(text, " ")[[1]]
   paste(sapply(seq(1, length(words), n), function(i) {
@@ -50,28 +40,27 @@ insert_line_breaks <- function(text, n = 10) {
 createUmap <- function(r){
   
   # colour functions ----
-  colours <- viridis::viridis(n = length(unique(r$df()$topic)), begin = 0, end = 0.92, direction = 1)
+  topics <- unique(r$df()$topic)
+  colours <- viridis::viridis(n = length(topics), begin = 0, end = 0.92, option = "D", direction = 1)
+  names(colours) <- unique(topics)
 
   adjusted_colours_lighter_0.6 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
   adjusted_colours_lighter_0.05 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05))
   adjusted_colours_darker_1 <- purrr::map_chr(colours, ~adjust_colour_darker(.x, og_val = 1)) ## for labels
-  
-  names(colours) <- unique(r$df()$topic)
-  print(colours)
   # ----
 
   # cluster labelling and colouring ----
   centroids <- r$df() %>%
     dplyr::group_by(topic) %>%
     dplyr::summarise(
-      x = mean(V1),
-      y = mean(V2)
+      x = median(V1),
+      y = median(V2)
     )
 
   cluster_lookup <- r$df() %>%
-    group_by(topic) %>%
-    summarise(topic_number = cur_group_id(),
-              label = first(topic),
+    dplyr::group_by(topic) %>%
+    dplyr::summarise(topic_number = dplyr::cur_group_id(),
+              label = dplyr::first(topic),
               centroid_x = mean(V1),
               centroid_y = mean(V2)) 
   
@@ -80,43 +69,38 @@ createUmap <- function(r){
   # plot ----
 
   if(is.null(r$highlight_df)){
-    # plot_df <- r$df()
-    # plot_df$assigned_colour <- colours[r$df()$topic]
-    # print(plot_df %>% distinct(assigned_colour, topic))
 
     p <- r$df() %>%
-      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
-                    assigned_colour = colours[topic]) %>%
+      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
+                    # assigned_colour = colours[topic]) %>%
       plotly::plot_ly(x = ~V1,
                       y = ~V2,
                       width = 900, height = 700,
                       color = ~topic,
+                      colors = colours,
                       customdata = ~rowid,
                       type = "scattergl",
                       mode = "markers",
                       text = ~text_with_breaks,
                       hoverinfo = "text",
-                      # colors = adjusted_colours_lighter_0.6,
-                      colors = ~assigned_colour,
+                      showlegend = TRUE,
                       marker = list(opacity = 0.7),  # Adjust marker size and opacity
                       source = "umap_plot") 
   } else {
-    
-    # r$highlight_df()["colours"] <- setcolours[r$highlight_df()$topic]
-    # r$highlight_df() <- r$highlight_df() %>%
-    #   mutate(assigned_colour = setcolours[topic])
     grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ]
     highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ] %>%
       dplyr::mutate(assigned_colour = colours[topic])
+    print(highlight_points %>% dplyr::distinct(assigned_colour, topic))
+    print(colours)
 
-    DT::datatable(grey_points)
-    DT::datatable(highlight_points)
-
-    p <- plotly::plot_ly(width = 900, height = 700) %>%
+    p <- plotly::plot_ly(width = 900, height = 700,
+                         colors = colours
+                         ) %>%
       plotly::add_trace(data = grey_points,
                 x = ~V1, y = ~V2,
                 type = "scattergl",
                 mode = "markers",
+                showlegend = FALSE,
                 marker = list(opacity = 0.7, color = "#cccccc"),
                 hoverinfo = "skip") %>%
       plotly::add_trace(data = highlight_points,
@@ -124,11 +108,15 @@ createUmap <- function(r){
                 type = "scattergl",
                 mode = "markers",
                 color = ~topic,
-                marker = list(opacity = 0.7, 
+                showlegend = TRUE,
+                # colors = colours,
+                marker = list(opacity = 0.7
                               # color = adjusted_colours_lighter_0.6
-                              color = ~assigned_colour),
+                              # color = colours
+                              # color = ~assigned_colour
+                              ),
                 hoverinfo ="text",
-                text = ~text) 
+                text = ~text)
   }
 
   
@@ -150,7 +138,6 @@ createUmap <- function(r){
                      visile = FALSE,
                      title = ""
                    ),
-                   showlegend = TRUE,
                    legend = list(title = "Topics")) %>%
     plotly::config(
       scrollZoom = TRUE,
@@ -160,7 +147,7 @@ createUmap <- function(r){
         annotation = TRUE
       )
     )
- 
+
   
   
   # ----

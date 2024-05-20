@@ -49,24 +49,24 @@ insert_line_breaks <- function(text, n = 10) {
 
 process_sentences <- function(doc_id, example_sentences) {
   doc_id %>%
-    group_by(document) %>% # Change to appropriate document column
+    dplyr::group_by(document) %>% # Change to appropriate document column
     dplyr::mutate(
       sentences = list(sentence),
-      text_copy = first(text_copy) # Change to appropriate text column
+      text_copy = dplyr::first(text_copy) # Change to appropriate text column
     ) %>%
-    ungroup() %>%
+    dplyr::ungroup() %>%
     dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
-    distinct(document, .keep_all = TRUE) %>% # Change to appropriate document column
-    right_join(example_sentences) %>%
-    dplyr::mutate(highlighted = case_when(is.na(cosine_sim) ~ FALSE,
+    dplyr::distinct(document, .keep_all = TRUE) %>% # Change to appropriate document column
+    dplyr::right_join(example_sentences) %>%
+    dplyr::mutate(highlighted = dplyr::case_when(is.na(cosine_sim) ~ FALSE,
                                           T ~ TRUE)) %>% # Change to appropriate document column
-    distinct(document, .keep_all = TRUE) %>%
-    dplyr::mutate(test_text = case_when(
+    dplyr::distinct(document, .keep_all = TRUE) %>%
+    dplyr::mutate(test_text = dplyr::case_when(
       is.na(cosine_sim) ~ text_copy,
       TRUE ~ test_text
     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
     # dplyr::mutate(row_id = row_number()) %>% 
-    select(rowid, text = text_with_breaks, highlighted, V1, V2, rowid, topic)
+    dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, rowid, topic)
 }
 
 # generate_topic_colours <- function(example_sentences_2) {
@@ -159,9 +159,9 @@ cosine_calculation_threshold_sentence <- function(reference_statement,
   
   current_sentence_candidates <- df %>%
     dplyr::mutate(cosine_sim = as.numeric(sentence_cosine_sims)) %>%
-    relocate(cosine_sim) %>%
-    filter(cosine_sim > cosine_sim_threshold) %>%
-    arrange(desc(cosine_sim))
+    dplyr::relocate(cosine_sim) %>%
+    dplyr::filter(cosine_sim > cosine_sim_threshold) %>%
+    dplyr::arrange(desc(cosine_sim))
   
   return(current_sentence_candidates)
   

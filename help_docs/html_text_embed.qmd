@@ -7,14 +7,19 @@ format:
 editor: visual
 ---
 
+TODO:
+
+-   [ ] Basic means of rendering per API
+-   [ ] Privacy Issues across APIs
+
 # Background
 
-As part of the Demo sales App, we'd love to have a tweet wall/embedded text centre to look more professional, where the tweets are [masonified](https://www.smashingmagazine.com/native-css-masonry-layout-css-grid/). Which could nowadays be done with `bslib::layout_column_wrap()
-`
+As part of the Demo sales App, we'd love to have a tweet wall/embedded text centre to look more professional, where the tweets are [masonified](https://www.smashingmagazine.com/native-css-masonry-layout-css-grid/). Which could nowadays be done with `bslib::layout_column_wrap()`
 
 e.g. [Gaden Buie's Conference App](https://gadenbuie.shinyapps.io/tweet-conf-dash/) would compliment the landscape nicely.
 
 These functions do the work:
+
 ```{r, eval = FALSE}
 get_tweet_blockquote <- function(screen_name, status_id, ..., null_on_error = TRUE, theme = "light") {
   oembed <- list(...)$oembed
@@ -49,14 +54,19 @@ masonify_tweets <- function(tweets, id = NULL, class = NULL) {
 }
 ```
 
-
 Question of whether this should be top posts (by likes, engagements?), top by cosine/x to some query?
-
 
 [Embedding via reddit](https://www.reddit.com/wiki/embeds/)
 
-<blockquote class="reddit-embed-bq" style="height:316px" data-embed-height="597"><a href="https://www.reddit.com/r/redditdev/comments/16tqlth/updating_api_user_setting_fields/">Updating API user setting fields</a><br> by<a href="https://www.reddit.com/user/pl00h/">u/pl00h</a> in<a href="https://www.reddit.com/r/redditdev/">redditdev</a></blockquote><script async="" src="https://embed.reddit.com/widgets.js" charset="UTF-8"></script>
+<blockquote class="reddit-embed-bq" style="height:316px" data-embed-height="597">
 
+<a href="https://www.reddit.com/r/redditdev/comments/16tqlth/updating_api_user_setting_fields/">Updating API user setting fields</a><br> by<a href="https://www.reddit.com/user/pl00h/">u/pl00h</a> in<a href="https://www.reddit.com/r/redditdev/">redditdev</a>
+
+</blockquote>
+
+```{=html}
+<script async="" src="https://embed.reddit.com/widgets.js" charset="UTF-8"></script>
+```
 Need to paste in the user and the id
 
 # Reddit
@@ -66,6 +76,7 @@ shiny::HTML('<blockquote class="reddit-embed-bq" style="height:316px" data-embed
 ```
 
 This works:
+
 ```{r}
 library(shiny)
 
@@ -80,7 +91,8 @@ server <- function(input, output, session){
 shinyApp(ui, server)
 ```
 
-To map an arbitrary number to 3  per row:
+To map an arbitrary number to 3 per row:
+
 ```{r}
 library(shiny)
 library(bslib)
@@ -124,6 +136,7 @@ shinyApp(ui, server)
 ```
 
 # Instagram
+Private accounts are a bit of a problem with the instagram API - can't render the images, so would need to check. Same may be true of Twitter.
 
 [Instagram Embed API Terms of Service](https://developers.facebook.com/terms)
 
@@ -138,8 +151,26 @@ shinyApp(ui, server)
 bslib::layout_column_wrap(1/3, .tmp_insta, .tmp_insta, .tmp_insta)
 ```
 
+```{r}
+r_pl %>% extract_source()
+
+embed_switch(r_pl) %>% bslib::card()
+embed_switch(i_pl) %>% bslib::card()
+embed_switch(t_pl) %>% bslib::card()
+```
 
 ```{r}
+list_pl <- list(i_pl, r_pl, t_pl)
 
+list_e <- lapply(list_pl, function(x) {
+  embed_switch(x)
+})
+
+class(list_e)
+do.call(bslib::layout_column_wrap, c(width = 1/3, list_e))
+```
+
+
+```{r}
 ```
 

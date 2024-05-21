@@ -44,7 +44,8 @@ umapServer <- function(id, r){
    
     
     shiny::observeEvent(plotly::event_data("plotly_selected", source = "umap_plot"), {
-      r$selected_range <- plotly::event_data("plotly_selected", source = "umap_plot")$customdata
+      # r$selected_range <- plotly::event_data("plotly_selected", source = "umap_plot")$customdata
+      r$selected_range <- plotly::event_data("plotly_selected", source = "umap_plot")$key
     })
 
     

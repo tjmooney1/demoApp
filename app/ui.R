@@ -2,6 +2,8 @@
 # sysfonts::font_add(family = "Cinzel-SemiBold", regular = "/Users/aoiferyan/Library/Fonts/Cinzel-SemiBold.ttf")
 
 ui <- bslib::page_fillable(
+  tags$style(HTML("g.hovertext > path {opacity: .8;}")),
+  
   theme = bslib::bs_theme(
     bootswatch = "sandstone",
     heading_font = bslib::font_face(family = "Cinzel-Regular",
@@ -13,7 +15,7 @@ ui <- bslib::page_fillable(
       bslib::layout_sidebar(
         sidebar = bslib::sidebar(
           dataUploadUi("data_upload_panel"),
-          semantic_search_UI("semantic_search_panel"),
+          searchUi("semantic_search_panel"),
           open = TRUE),
         bslib::navset_card_tab(
           bslib::nav_panel(

@@ -31,5 +31,5 @@ source(here("app/server.R"))
 if(interactive()){
   shinyApp(ui, server)
 } else {
-  runApp(here("app"))
+  runApp(here::here("app"))
 }

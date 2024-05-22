@@ -23,8 +23,8 @@ dataUploadServer <- function(id, r){
     
     category <- shiny::reactive({
       switch(input$dataset,
-             "Automotive" = "automotive",
              "Beauty & Cosmetics" = "fashion",
+             "Automotive" = "automotive",
              "Food & Beverages" = "technology")
     })
     

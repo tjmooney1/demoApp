@@ -51,7 +51,7 @@ createUmap <- function(r){
 
   # cluster labelling and colouring ----
   centroids <- r$df() %>%
-    dplyr::group_by(topic) %>%
+    dplyr::group_by(topic_title) %>%
     dplyr::summarise(
       x = median(V1),
       y = median(V2)
@@ -60,7 +60,7 @@ createUmap <- function(r){
   cluster_lookup <- r$df() %>%
     dplyr::group_by(topic_title) %>%
     dplyr::summarise(
-      topic_number = topic,
+      # topic_number = topic,
               label = dplyr::first(topic_title),
               centroid_x = mean(V1),
               centroid_y = mean(V2)) 
@@ -73,7 +73,8 @@ createUmap <- function(r){
   if(is.null(r$highlight_df)){
     
     p <- r$df() %>%
-      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
+      dplyr::mutate(
+        # text_with_breaks = sapply(text, insert_line_breaks),
                     assigned_colour = colours[topic_title],
                     hover_text = 
                       paste0(
@@ -85,7 +86,7 @@ createUmap <- function(r){
       plotly::plot_ly(x = ~V1,
                       y = ~V2,
                       width = 900, height = 700,
-                      color = ~topic,
+                      color = ~as.factor(topic),
                       colors = adjust_colour_lighter(colours, og_val = 0.8),
                       key = ~universal_message_id,
                       customdata = ~sender_screen_name,
@@ -106,7 +107,8 @@ createUmap <- function(r){
   } else {
     grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ] 
     highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ] %>%
-      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
+      dplyr::mutate(
+        # text_with_breaks = sapply(text, insert_line_breaks),
                     assigned_colour = colours[topic_title],
                     hover_text = 
                       paste0(
@@ -125,7 +127,7 @@ createUmap <- function(r){
                         type = "scattergl",
                         mode = "markers",
                         key = ~universal_message_id,
-                        color = ~topic,
+                        color = ~as.factor(topic),
                         showlegend = TRUE,
                         marker = list(opacity = 0.7, size = 4),
                         hoverinfo ="text",
@@ -217,8 +219,9 @@ for (i in 1:nrow(cluster_lookup)) {
     showarrow = FALSE,
     font = list(size = 22,
                 family = "Cinzel",
-                color = adjusted_colours_darker_1[as.numeric(cluster_lookup$topic_number[i])]
-                # color = "#4E5180"
+                # color = adjusted_colours_darker_1[as.numeric(cluster_lookup$topic_number[i])]
+                # color = adjusted_colours_darker_1[cluster_lookup$topic_title[i]]
+                color = "#2F314D"
                 )
   )
 }

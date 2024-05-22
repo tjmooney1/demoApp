@@ -216,27 +216,50 @@ topic_lookup <- topic_summary %>%
   dplyr::select(Topic, representation)
 
 beauty_topics <- beauty_clean %>%
-  dplyr::mutate(topic = model$topics_) %>%
+  dplyr::mutate(topic = model$topics_,
+                text_with_breaks = sapply(text, insert_line_breaks)) %>%
   dplyr::left_join(topic_lookup, 
                    by = dplyr::join_by("topic" == "Topic")) %>%
-  dplyr::rename(topic_title = representation)
-
-beauty_topics %>% 
+  dplyr::rename(topic_title = representation) %>%
   dplyr::select(-c(".document%%num_cuts", "V1", "V2")) %>%
   cbind(reduced_embeddings2d) %>% 
   dplyr::rename(V1 = `0`, V2 = `1`) %>%
   dplyr::mutate(rowid = dplyr::row_number(),
                 topic_title = dplyr::case_when(
                   topic == 0 ~ "Hair Care",
-                  topic == 1 ~ "Moisturising Skincare",
+                  topic == 1 ~ "Moisturising\Skincare",
                   topic == 2 ~ "Perfumes",
                   topic == 3 ~ "Social Issues",
                   topic == 4 ~ "Colognes",
-                  topic == 5 ~ "Skincare for Acne/Wrinkles",
-                  topic == 6 ~ "Sun Care",
+                  topic == 5 ~ "Skincare for\nAcne/Wrinkles",
+                  topic == 6 ~ "Skin Conditions",
                   topic == 7 ~ "Feeling Radiant",
                   topic == 8 ~ "Designers",
                   topic == 9 ~ "Makeup",
-                  TRUE ~ NA)) %>%
+                  TRUE ~ NA))
+
+beauty_topics %>%
   readr::write_rds("app/data/cosmetic_data.rds")
+```
+
+# Quick edit of Jamie's sentence df and save to repo
+
+```{r}
+cosmetic_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.csv")
+
+cosmetic_sentences_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings_quant.csv")
+
+cosmetic_sentences %>% colnames()
+
+cosmetic_sentences_topics <- cosmetic_sentences %>% 
+  dplyr::select(-c("V1", "V2")) %>%
+  dplyr::left_join(beauty_topics %>% 
+                     dplyr::select(universal_message_id, topic, topic_title, V1, V2),
+                   by = "universal_message_id") 
+  
+cosmetic_sentences_topics %>%
+  readr::write_rds("app/data/cosmetic_sentences.rds")
+
+cosmetic_sentences_embeddings %>%
+  readr::write_rds("app/data/cosmetic_sentences_embeddings.rds")
 ```

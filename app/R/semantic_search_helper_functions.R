@@ -71,25 +71,25 @@ insert_line_breaks <- function(text, n = 10) {
 
 process_sentences_quant <- function(doc_id, example_sentences) {
   doc_id %>%
-    dplyr::group_by(docid) %>% # Change to appropriate document column
+    dplyr::group_by(rowid) %>% # Change to appropriate document column
     dplyr::mutate(
       sentences = list(sentence),
       text_copy = dplyr::first(text_copy) # Change to appropriate text column
     ) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
-    dplyr::distinct(docid, .keep_all = TRUE) %>% # Change to appropriate document column
+    dplyr::distinct(rowid, .keep_all = TRUE) %>% # Change to appropriate document column
     dplyr::right_join(example_sentences) %>%
     dplyr::mutate(highlighted = dplyr::case_when(is.na(dot_prod) ~ FALSE,
                                                  T ~ TRUE)) %>% # Change to appropriate document column
-    dplyr::distinct(document, .keep_all = TRUE) %>%
+    dplyr::distinct(rowid, .keep_all = TRUE) %>%
     dplyr::mutate(test_text = dplyr::case_when(
       is.na(dot_prod) ~ text_copy,
       TRUE ~ test_text
     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
     # dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, universal_message_id, topic, sender_screen_name)
-    dplyr::select(rowid, text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name)
-
+    dplyr::select(rowid, text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
+  
 }
 
 # generate_topic_colours <- function(example_sentences_2) {

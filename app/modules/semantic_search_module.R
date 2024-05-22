@@ -42,12 +42,12 @@ semantic_searchServer <- function(id, r) {
     )
     
     observeEvent(input$update_plot, {
-      print("searching")
-      if (!in.null(input$keyword_search_term)){
-        keyword_search_output <- r$df()[grep(input$keyword_serach_term, r$df()$text, ignore.case = TRUE), ]
-      }
-      
-      if (!is)
+      # print("searching")
+      # if (!is.null(input$keyword_search_term)){
+      #   keyword_search_output <- r$df()[grep(input$keyword_serach_term, r$df()$text, ignore.case = TRUE), ]
+      # }
+      # 
+      # if (!is)
       
       
       semantic_similarity_output <- cosine_calculation_threshold_sentence(

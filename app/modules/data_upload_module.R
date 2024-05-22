@@ -30,8 +30,7 @@ dataUploadServer <- function(id, r){
     
     
     df <- reactive({
-      data <- readr::read_rds(here::here("app/data/example_data.rds")) %>%
-        dplyr::mutate(rowid = dplyr::row_number())
+      data <- readr::read_rds(here::here("app/data/cosmetic_data.rds"))
 
       # ----
     })

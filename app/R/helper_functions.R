@@ -40,7 +40,7 @@ insert_line_breaks <- function(text, n = 10) {
 createUmap <- function(r){
   
   # colour functions ----
-  topics <- unique(r$df()$topic)
+  topics <- unique(r$df()$topic_title)
   colours <- viridis::viridis(n = length(topics), begin = 0, end = 0.92, option = "D", direction = 1)
   names(colours) <- unique(topics)
 
@@ -58,9 +58,10 @@ createUmap <- function(r){
     )
 
   cluster_lookup <- r$df() %>%
-    dplyr::group_by(topic) %>%
-    dplyr::summarise(topic_number = dplyr::cur_group_id(),
-              label = dplyr::first(topic),
+    dplyr::group_by(topic_title) %>%
+    dplyr::summarise(
+      topic_number = topic,
+              label = dplyr::first(topic_title),
               centroid_x = mean(V1),
               centroid_y = mean(V2)) 
   
@@ -73,7 +74,7 @@ createUmap <- function(r){
     
     p <- r$df() %>%
       dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
-                    assigned_colour = colours[topic],
+                    assigned_colour = colours[topic_title],
                     hover_text = 
                       paste0(
                         "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
@@ -106,7 +107,7 @@ createUmap <- function(r){
     grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ] 
     highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ] %>%
       dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
-                    assigned_colour = colours[topic],
+                    assigned_colour = colours[topic_title],
                     hover_text = 
                       paste0(
                         "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",

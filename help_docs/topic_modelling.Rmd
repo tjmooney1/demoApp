@@ -172,10 +172,13 @@ beauty_clean %>% head(100) %>%
   dplyr::select(text, text_copy, text_clean) %>% DT::datatable()
 
 
-beauty_clean %>% readr::write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_joined_rev2.csv")
+beauty_clean %>% readr::write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/old/cosmetic_joined_rev2.csv")
+
+beauty_clean <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/old/cosmetic_joined_rev2.csv")
 
 reduced_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_joined_reduced_embeddings_ar.csv")
 
+reduced_embeddings2d <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_joined_reduced_embeddings2d_ar.csv")
 ```
 
 ## Topic Modelling
@@ -217,4 +220,23 @@ beauty_topics <- beauty_clean %>%
   dplyr::left_join(topic_lookup, 
                    by = dplyr::join_by("topic" == "Topic")) %>%
   dplyr::rename(topic_title = representation)
+
+beauty_topics %>% 
+  dplyr::select(-c(".document%%num_cuts", "V1", "V2")) %>%
+  cbind(reduced_embeddings2d) %>% 
+  dplyr::rename(V1 = `0`, V2 = `1`) %>%
+  dplyr::mutate(rowid = dplyr::row_number(),
+                topic_title = dplyr::case_when(
+                  topic == 0 ~ "Hair Care",
+                  topic == 1 ~ "Moisturising Skincare",
+                  topic == 2 ~ "Perfumes",
+                  topic == 3 ~ "Social Issues",
+                  topic == 4 ~ "Colognes",
+                  topic == 5 ~ "Skincare for Acne/Wrinkles",
+                  topic == 6 ~ "Sun Care",
+                  topic == 7 ~ "Feeling Radiant",
+                  topic == 8 ~ "Designers",
+                  topic == 9 ~ "Makeup",
+                  TRUE ~ NA)) %>%
+  readr::write_rds("app/data/cosmetic_data.rds")
 ```

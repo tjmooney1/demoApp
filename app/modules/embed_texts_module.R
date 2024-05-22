@@ -13,8 +13,6 @@ embed_text_server <- function(id, r) {
     selected_texts <- shiny::reactive({
       req(shiny::isTruthy(r$selected_range))
       
-      print(r$selected_range)
-      
       permalinks <- r$df() %>%
         dplyr::filter(universal_message_id %in% r$selected_range) %>%
         dplyr::pull(permalink)

@@ -16,23 +16,6 @@
       "Repository": "RSPM",
       "Hash": "a8235afbcd6316e6e91433ea47661013"
     },
-    "DT": {
-      "Package": "DT",
-      "Version": "0.33",
-      "Source": "Repository",
-      "Repository": "RSPM",
-      "Requirements": [
-        "crosstalk",
-        "htmltools",
-        "htmlwidgets",
-        "httpuv",
-        "jquerylib",
-        "jsonlite",
-        "magrittr",
-        "promises"
-      ],
-      "Hash": "64ff3427f559ce3f2597a4fe13255cb6"
-    },
     "MASS": {
       "Package": "MASS",
       "Version": "7.3-58.4",
@@ -67,7 +50,13 @@
     "PKI": {
       "Package": "PKI",
       "Version": "0.1-12",
-      "Source": "Repository"
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "base64enc"
+      ],
+      "Hash": "999d7960fe5a5fd98267d0b68fd10065"
     },
     "R6": {
       "Package": "R6",
@@ -767,7 +756,14 @@
     "packrat": {
       "Package": "packrat",
       "Version": "0.9.2",
-      "Source": "Repository"
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "R",
+        "tools",
+        "utils"
+      ],
+      "Hash": "55ddd2d4a1959535f18393478b0c14a6"
     },
     "pillar": {
       "Package": "pillar",
@@ -973,12 +969,32 @@
     "rsconnect": {
       "Package": "rsconnect",
       "Version": "1.2.2",
-      "Source": "Repository"
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Requirements": [
+        "PKI",
+        "R",
+        "cli",
+        "curl",
+        "digest",
+        "jsonlite",
+        "lifecycle",
+        "openssl",
+        "packrat",
+        "renv",
+        "rlang",
+        "rstudioapi",
+        "tools",
+        "yaml"
+      ],
+      "Hash": "77e9ed1307e84cd7ca1c7fb2cd7bbfe2"
     },
     "rstudioapi": {
       "Package": "rstudioapi",
       "Version": "0.16.0",
-      "Source": "Repository"
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "96710351d642b70e8f02ddeb237c46a7"
     },
     "sass": {
       "Package": "sass",
@@ -1125,6 +1141,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "3a1be13d68d47a8cd0bfd74739ca1555"
+    },
+    "sysfonts": {
+      "Package": "sysfonts",
+      "Version": "0.8.9",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "7dfca1e9c5c278300b5ca6a1772072f7"
     },
     "tibble": {
       "Package": "tibble",

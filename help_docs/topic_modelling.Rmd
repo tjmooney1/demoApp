@@ -1,0 +1,220 @@
+---
+title: "topic_modelling"
+output: html_document
+date: "2024-05-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load and clean data
+
+```{r cars}
+beauty <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/hackafun_cosmetic_joined.csv")
+
+# beauty_embeddings <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_embeddings.rds")
+
+tim_beauty <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/hackafun_cosmetic_joined.csv")
+```
+
+```{r}
+#' clean_text
+#' @description A function that performs a series of cleaning steps on a text variable. Useful for processing when dealing with qualitative data
+#' @param df A tibble or data frame object containing the text variable the user wants to perform cleaning steps upon
+#' @param text_var The text variable with the message assigned to the observation that the user wishes to clean
+#' @param tolower Whether to convert all text to lower case?
+#' @param remove_hashtags Should hashtags be removed?
+#' @param remove_mentions Should any user/profile mentions be removed?
+#' @param remove_emojis Should emojis be removed?
+#' @param remove_punctuation Should punctuation be removed?
+#' @param remove_digits Should digits be removed?
+#' @param in_parallel Whether to run the function in parallel (TRUE = faster)
+#'
+#' @return The data object provided, with a cleaned text variable
+#'
+#' @export
+#'
+#' @examples
+#' if(interactive()){
+#' #Performs all cleaning steps in parallel
+#'cleaned_data <- clean_text(df = ParseR::sprinklr_export,
+#'text_var = Message,
+#'in_parallel = TRUE)
+#'
+#'# If the user wants to perform all cleaning steps but keep capital letters and punctuation 
+#'cleaned_data <- clean_text(df = ParseR::sprinklr_export,
+#'text_var = Message,
+#'tolower = FALSE,
+#'remove_punctuation = FALSE,
+#'in_parallel = TRUE)
+#' }
+
+clean_text_ar <- function(df, text_var = message, tolower = TRUE, remove_hashtags = TRUE, remove_mentions = TRUE, remove_emojis = TRUE, remove_punctuation = TRUE, remove_digits = TRUE, in_parallel = TRUE) {
+  text_sym <- rlang::ensym(text_var)
+  text_quo <- rlang::enquo(text_var)
+  
+  # hide regex ----
+  # Non-optional regex for websites
+  domains <- c(".com", ".ly", ".org", ".net", ".us", ".uk", ".co", ".ch")
+  http_regex <- "htt(p|ps)\\S+"
+  web_regex <- paste0(
+    "[:graph:]*(?=(\\", domains, "/))",
+    "|(?<=(\\", domains, "/))[:graph:]*(?![:alnum:])"
+  )
+  domain_regex <- paste0("(\\", domains, "/)")
+  
+  # Optional regex for hashtags
+  if (remove_hashtags) {
+    hashtags_regex <- c("(?<=#)[:graph:]*(?![:graph:])|(?<=#)[:graph:]*$", "#")
+  } else {
+    hashtags_regex <- NULL
+  }
+  
+  # Optional regex for hashtags
+  if (remove_mentions) {
+    mentions_regex <- c("(?<=@)[:graph:]*(?![:graph:])|(?<=@)[:graph:]*$", "@")
+  } else {
+    mentions_regex <- NULL
+  }
+  
+  # Optional regex for emojis
+  if (remove_emojis) {
+    emojis_regex <- "[^\x01-\x7F]"
+  } else {
+    emojis_regex <- NULL
+  }
+  if (remove_punctuation) {
+    punctuation_regex <- "[:punct:]"
+  } else {
+    punctuation_regex <- NULL
+  }
+  
+  if (remove_digits) {
+    digits_regex <- "[:digit:]"
+  } else {
+    digits_regex <- NULL
+  }
+  
+  # Join all regex into one named character vector
+  names_regex <- c(
+    web_regex,
+    domain_regex,
+    hashtags_regex,
+    mentions_regex,
+    digits_regex,
+    emojis_regex,
+    punctuation_regex,
+    http_regex
+  )
+  all_regex <- character(length(names_regex))
+  names(all_regex) <- names_regex
+  
+  # hide function main body ----
+  
+  if (tolower) {
+    df <- df %>%
+      dplyr::mutate(!!text_quo := tolower(!!text_sym))
+  }
+  
+  if (in_parallel) {
+    num_cuts <- future::availableCores() - 1
+    
+    options(future.rng.onMisuse = "ignore")
+    message("Beginning parallel sessions")
+    future::plan(future::multisession(workers = future::availableCores() - 1))
+    
+    df <- df %>%
+      dplyr::mutate(.document = dplyr::row_number()) %>%
+      dplyr::group_split(.document %% num_cuts) %>%
+      furrr::future_map_dfr(~ .x %>%
+                              dplyr::mutate(!!text_sym := stringr::str_remove_all(!!text_sym, all_regex),
+                                            !!text_sym := stringr::str_squish(!!text_sym),
+                                            !!text_sym := stringr::str_trim(!!text_sym))) %>%
+      dplyr::arrange(.document) %>%
+      dplyr::select(-.document)
+    
+    message("Ending parallel sessions")
+    future::plan(future::sequential())
+  } else {
+    df <- df %>%
+      dplyr::mutate(
+        !!text_sym := stringr::str_remove_all(!!text_sym, all_regex),
+        !!text_sym := stringr::str_squish(!!text_sym)
+      ) 
+  }
+  
+  df <- df %>% dplyr::filter(!is.na(!!text_sym))
+  return(df)
+}
+
+```
+
+```{r}
+# mentions_regex <- c("(?<=@)[:graph:]*(?![:graph:])|(?<=@)[:graph:]*$", "@")
+mentions_regex <- "@[a-z,A-Z]*?"
+
+beauty_clean <- beauty %>%
+  dplyr::mutate(text_clean = text) %>%
+  clean_text_ar(text_var = text_clean, 
+                tolower = FALSE, 
+                remove_hashtags = TRUE, 
+                remove_mentions = TRUE, 
+                remove_emojis = TRUE, 
+                remove_punctuation = FALSE, 
+                remove_digits = FALSE, 
+                in_parallel = TRUE) %>%
+  dplyr::mutate(char_length = stringr::str_count(text_clean)) %>%
+  dplyr::filter(char_length > 10) %>%
+  dplyr::distinct(text_clean, .keep_all = TRUE)
+
+beauty_clean %>% head(100) %>%
+  dplyr::select(text, text_copy, text_clean) %>% DT::datatable()
+
+
+beauty_clean %>% readr::write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_joined_rev2.csv")
+
+reduced_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_joined_reduced_embeddings_ar.csv")
+
+```
+
+## Topic Modelling
+
+```{r}
+library(BertopicR)
+
+clusterer <- bt_make_clusterer_kmeans(n_clusters = 10L)
+
+model <- bt_compile_model(embedding_model = bt_empty_embedder(),
+                          reduction_model = bt_empty_reducer(),
+                          clustering_model = clusterer)
+bt_fit_model(model, 
+             beauty_clean$text_clean, 
+             embeddings = reduced_embeddings)
+
+model$get_topic_info() %>% 
+  dplyr::select(-Representative_Docs, - Representation) %>%
+  DT::datatable()
+
+
+representation <- bt_representation_openai(fitted_model = model,
+                         documents = beauty_clean$text_clean,
+                         openai_model = "gpt-3.5-turbo",
+                         api_key = Sys.getenv("OPENAI_API_KEY"),
+                         nr_repr_docs = 150L,
+                         nr_sample = 1000L,
+                         chat = TRUE)
+
+topic_summary <- model$get_topic_info() %>%
+  dplyr::select(-Representative_Docs, - Representation) %>%
+  dplyr::mutate(representation = representation)
+
+topic_lookup <- topic_summary %>% 
+  dplyr::select(Topic, representation)
+
+beauty_topics <- beauty_clean %>%
+  dplyr::mutate(topic = model$topics_) %>%
+  dplyr::left_join(topic_lookup, 
+                   by = dplyr::join_by("topic" == "Topic")) %>%
+  dplyr::rename(topic_title = representation)
+```

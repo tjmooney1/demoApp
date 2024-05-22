@@ -6,12 +6,12 @@
 umapUi <- function(id){
   ns <- shiny::NS(id)
     htmltools::div(
-      # style = "position: absolute; top: 1; right: 0;",
+      style = "position: relative",
       shinycssloaders::withSpinner( 
         shiny::uiOutput(ns("display_plot"))
       ),
       htmltools::div(
-        style = "position: absolute; top: 0; right: -0.1;",
+        style = "position: absolute; top: 10px; left: 10px",
                    shinyWidgets::prettySwitch(
                      inputId = ns("plot_selection"),
                      label = "Cluster View"
@@ -44,7 +44,9 @@ umapServer <- function(id, r){
    
     
     shiny::observeEvent(plotly::event_data("plotly_selected", source = "umap_plot"), {
-      r$selected_range <- plotly::event_data("plotly_selected", source = "umap_plot")$customdata
+      # r$selected_range <- plotly::event_data("plotly_selected", source = "umap_plot")$customdata
+      r$selected_range <- plotly::event_data("plotly_selected", source = "umap_plot")$key
+
     })
 
     

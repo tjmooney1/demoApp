@@ -67,59 +67,89 @@ createUmap <- function(r){
   # ----
 
   # plot ----
-
+  sysfonts::font_add(family = "Cinzel-Regular", regular = "/Users/aoiferyan/Library/Fonts/Cinzel-Regular.ttf")
+  
   if(is.null(r$highlight_df)){
 
     p <- r$df() %>%
-      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks)) %>%
-                    # assigned_colour = colours[topic]) %>%
+      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
+                    assigned_colour = colours[topic],
+                    hover_text = 
+                      paste0(
+                      "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
+                      "<i>", "\"", text_with_breaks, "\"", "</i> - @", sender_screen_name, "<br><br>",
+                      "<b><span style='color:", adjust_colour_darker(assigned_colour, og_val = 1), ";'>", topic, "</span></b>",
+                      "</span>")
+                    ) %>%
       plotly::plot_ly(x = ~V1,
                       y = ~V2,
                       width = 900, height = 700,
                       color = ~topic,
-                      colors = colours,
-                      customdata = ~rowid,
+                      colors = adjust_colour_lighter(colours, og_val = 0.8),
+                      key = ~universal_message_id,
+                      customdata = ~sender_screen_name,
                       type = "scattergl",
                       mode = "markers",
-                      text = ~text_with_breaks,
+                      text = ~hover_text,
                       hoverinfo = "text",
+                      hoverlabel = list(
+                        bgcolor = 'rgba(255,255,255,0.75)',
+                        font = list(
+                          family = "Cinzel-Regular"
+                        )
+                      ),
                       showlegend = TRUE,
-                      marker = list(opacity = 0.7),  # Adjust marker size and opacity
-                      source = "umap_plot") 
+                      marker = list(opacity = 0.7, size = 4),
+                      source = "umap_plot"
+                      )
   } else {
-    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ]
+    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ] 
     highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ] %>%
-      dplyr::mutate(assigned_colour = colours[topic])
-    print(highlight_points %>% dplyr::distinct(assigned_colour, topic))
-    print(colours)
+      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
+                    assigned_colour = colours[topic],
+                    hover_text = 
+                      paste0(
+                        "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
+                        "<i>", "\"", text_with_breaks, "\"", "</i> - @", sender_screen_name, "<br><br>",
+                        "<b><span style='color:", adjust_colour_darker(assigned_colour, og_val = 1), ";'>", topic, "</span></b>",
+                        "</span>"))
+    
+    # print(highlight_points %>% dplyr::distinct(assigned_colour, topic))
+    # print(colours)
 
     p <- plotly::plot_ly(width = 900, height = 700,
-                         colors = colours
+                         colors = colours,
+                         source = "umap_plot"
                          ) %>%
+      plotly::add_trace(data = highlight_points,
+                        x = ~V1, y = ~V2,
+                        type = "scattergl",
+                        mode = "markers",
+                        key = ~universal_message_id,
+                        color = ~topic,
+                        showlegend = TRUE,
+                        marker = list(opacity = 0.7, size = 4),
+                        hoverinfo ="text",
+                        text = ~hover_text,
+                        hoverinfo = "text",
+                        hoverlabel = list(
+                          bgcolor = 'rgba(255,255,255,0.75)',
+                          font = list(
+                            family = "Cinzel-Regular"
+                          )
+                        )
+      ) %>%
       plotly::add_trace(data = grey_points,
                 x = ~V1, y = ~V2,
                 type = "scattergl",
                 mode = "markers",
+                key = ~universal_message_id,
                 showlegend = FALSE,
-                marker = list(opacity = 0.7, color = "#cccccc"),
-                hoverinfo = "skip") %>%
-      plotly::add_trace(data = highlight_points,
-                x = ~V1, y = ~V2,
-                type = "scattergl",
-                mode = "markers",
-                color = ~topic,
-                showlegend = TRUE,
-                # colors = colours,
-                marker = list(opacity = 0.7
-                              # color = adjusted_colours_lighter_0.6
-                              # color = colours
-                              # color = ~assigned_colour
-                              ),
-                hoverinfo ="text",
-                text = ~text)
+                marker = list(opacity = 0.7, size = 4, color = "#cccccc"),
+                hoverinfo = "skip")
+    
   }
 
-  
   p <- p %>%
     plotly::layout(dragmode = "lasso",
                    xaxis = list(
@@ -138,7 +168,15 @@ createUmap <- function(r){
                      visile = FALSE,
                      title = ""
                    ),
-                   legend = list(title = "Topics")) %>%
+                   legend = list(
+                     orientation = "h",
+                     xanchor = "center",  # use center of legend as anchor
+                     x = 0.5,
+                     font = list(
+                         family = "Cinzel-Regular",
+                         size = 16
+                       )
+                   )) %>%
     plotly::config(
       scrollZoom = TRUE,
       displaylogo = FALSE,
@@ -180,29 +218,14 @@ for (i in 1:nrow(cluster_lookup)) {
     showarrow = FALSE,
     font = list(size = 22,
                 family = "Cinzel",
-                # color = adjusted_colours_darker_1[as.numeric(cluster_lookup$cluster[i])]
-                color = "#4E5180"
+                color = adjusted_colours_darker_1[as.numeric(cluster_lookup$topic_number[i])]
+                # color = "#4E5180"
                 )
   )
 }
   # ----
-  
-  # styling for cluster labelling: This is not at all a finished product ----
-#   badge_css = "
-#     border-radius:6px;
-#     width:fit-content;
-#     max-width:75%;
-#     margin:2px;
-#     padding: 2px 10px 2px 10px;
-#     font-size: 10pt;
-# "
-#   hover_text_template = "
-# <div>
-#     <div style=\"font-size:12pt;padding:2px;\">{{hover_text}}</div>
-#     <div style=\"background-color:{{color}};color:#fff;{badge_css}\">{{primary_field}}</div>
-#     <div style=\"background-color:#eeeeeeff;{badge_css}\">citation count: {{citation_count}}</div>
-#     </div>
-#     "
+
+# styling for cluster labelling: This is not at all a finished product ----
 
 return(p)
 

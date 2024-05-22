@@ -16,7 +16,8 @@ embed_text_server <- function(id, r) {
       print(r$selected_range)
       
       permalinks <- r$df() %>%
-        dplyr::filter(rowid %in% r$selected_range) %>%
+        # dplyr::filter(rowid %in% r$selected_range) %>%
+        dplyr::filter(universal_message_id %in% r$selected_range) %>%
         dplyr::pull(permalink)
       
       permalinks <- reverse_link_click_html(permalinks)

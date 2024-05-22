@@ -26,7 +26,7 @@ ui <- bslib::page_fillable(
             fill = TRUE
           ),
           bslib::nav_panel(
-            "Seleected Posts",
+            "Selected Posts",
             height = "900px",
             embed_text_ui("embed_text_panel"),
             fillable = TRUE,

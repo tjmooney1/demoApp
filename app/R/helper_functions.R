@@ -86,7 +86,7 @@ createUmap <- function(r){
                       width = 900, height = 700,
                       color = ~topic,
                       colors = adjust_colour_lighter(colours, og_val = 0.8),
-                      key = ~rowid,
+                      key = ~universal_message_id,
                       customdata = ~sender_screen_name,
                       type = "scattergl",
                       mode = "markers",
@@ -99,37 +99,57 @@ createUmap <- function(r){
                         )
                       ),
                       showlegend = TRUE,
-                      marker = list(opacity = 0.7, size = 4),  # Adjust marker size and opacity
-                      source = "umap_plot")
+                      marker = list(opacity = 0.7, size = 4),
+                      source = "umap_plot"
+                      )
   } else {
-    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ]
+    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ] 
     highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ] %>%
-      dplyr::mutate(assigned_colour = colours[topic])
-    print(highlight_points %>% dplyr::distinct(assigned_colour, topic))
-    print(colours)
+      dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks),
+                    assigned_colour = colours[topic],
+                    hover_text = 
+                      paste0(
+                        "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
+                        "<i>", "\"", text_with_breaks, "\"", "</i> - @", sender_screen_name, "<br><br>",
+                        "<b><span style='color:", adjust_colour_darker(assigned_colour, og_val = 1), ";'>", topic, "</span></b>",
+                        "</span>"))
+    
+    # print(highlight_points %>% dplyr::distinct(assigned_colour, topic))
+    # print(colours)
 
     p <- plotly::plot_ly(width = 900, height = 700,
-                         colors = colours
+                         colors = colours,
+                         source = "umap_plot"
                          ) %>%
+      plotly::add_trace(data = highlight_points,
+                        x = ~V1, y = ~V2,
+                        type = "scattergl",
+                        mode = "markers",
+                        key = ~universal_message_id,
+                        color = ~topic,
+                        showlegend = TRUE,
+                        marker = list(opacity = 0.7, size = 4),
+                        hoverinfo ="text",
+                        text = ~hover_text,
+                        hoverinfo = "text",
+                        hoverlabel = list(
+                          bgcolor = 'rgba(255,255,255,0.75)',
+                          font = list(
+                            family = "Cinzel-Regular"
+                          )
+                        )
+      ) %>%
       plotly::add_trace(data = grey_points,
                 x = ~V1, y = ~V2,
                 type = "scattergl",
                 mode = "markers",
+                key = ~universal_message_id,
                 showlegend = FALSE,
-                marker = list(opacity = 0.7, color = "#cccccc"),
-                hoverinfo = "skip") %>%
-      plotly::add_trace(data = highlight_points,
-                x = ~V1, y = ~V2,
-                type = "scattergl",
-                mode = "markers",
-                color = ~topic,
-                showlegend = TRUE,
-                marker = list(opacity = 0.7),
-                hoverinfo ="text",
-                text = ~text)
+                marker = list(opacity = 0.7, size = 4, color = "#cccccc"),
+                hoverinfo = "skip")
+    
   }
 
-  
   p <- p %>%
     plotly::layout(dragmode = "lasso",
                    xaxis = list(

@@ -66,7 +66,7 @@ process_sentences <- function(doc_id, example_sentences) {
       TRUE ~ test_text
     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
     # dplyr::mutate(row_id = row_number()) %>% 
-    dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, rowid, topic)
+    dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, universal_message_id, topic, sender_screen_name)
 }
 
 # generate_topic_colours <- function(example_sentences_2) {

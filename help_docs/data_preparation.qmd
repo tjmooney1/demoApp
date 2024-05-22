@@ -7,10 +7,10 @@ format:
 editor: visual
 ---
 
-Arguably the biggest problems for analysing social media data at scale are 
+Arguably the biggest problems for analysing social media data at scale are
 
-1. sheer volume 
-2. inherent lack of structure
+1.  sheer volume
+2.  inherent lack of structure
 
 To combat 1) we'll be looking at cleaning steps & heuristics which help us remove a large chunk of the junk, and some data processing/transformation steps which help us find structure where before there was none.
 
@@ -22,27 +22,28 @@ We don't need to re-invent the wheel, so we'll use the most battle-tested cleani
 
 TODO: May take this opportunity to write these things into Python so that we don't always have to switch between R and Python - spam_grams might be a bit annoying.
 
-- *String length* : Remove posts > ~2500 string length. They tend to be long blogs about some adjacent area which happened to contain a keyword, or just SEO slop
-- *Author Post count* : Remove crypto bots, news generators etc.
-- *Hashtags* : Remove posts with too many hashtags (SEO slop, nonsense)
-- *Usertags* : Remove posts with too many usertags
-- *Duplicates & Empty Posts*: Remove posts which are flat-out duplicates or empty/NA values
-- *Spam grams*:  Run the spam_grams function with a high value for n_gram to get rid of spam bot posts which are near duplicates or have subsections which are highly duplicated.
+-   *String length* : Remove posts \> \~2500 string length. They tend to be long blogs about some adjacent area which happened to contain a keyword, or just SEO slop
+-   *Author Post count* : Remove crypto bots, news generators etc.
+-   *Hashtags* : Remove posts with too many hashtags (SEO slop, nonsense)
+-   *Usertags* : Remove posts with too many usertags
+-   *Duplicates & Empty Posts*: Remove posts which are flat-out duplicates or empty/NA values
+-   *Spam grams*: Run the spam_grams function with a high value for n_gram to get rid of spam bot posts which are near duplicates or have subsections which are highly duplicated.
 
 ## Cleaning the text variable
 
-For the following steps, we remove the relevant substring from each post rather than the entire post. 
+For the following steps, we remove the relevant substring from each post rather than the entire post.
 
-- *To lowercase*
-- *Special characters & Punctuation* 
-- *long substrings of numbers* : > 4 numbers in a row, using a RegEx
-- *URLs* 
+-   *To lowercase*
+-   *Special characters & Punctuation*
+-   *long substrings of numbers* : \> 4 numbers in a row, using a RegEx
+-   *URLs*
 
 Once these steps are done we can move on to processing/transformation steps (embed, reduce dimensions, cluster etc.). It's likely some additional posts will be removed following the outputs of the dimensionality reduction/clustering.
 
 To learn the appropriate landscape, we may have to filter for sources that we are familiar with the formatting of, and that we know produce fairly predictable ranges in our embedding dimensions. We can then transform the other sources into this landscape. This helps with not having such a fragmented view.
 
 Cleaning steps flowchart:
+
 ```{mermaid}
 graph LR
   A[(Google sheets)] --> |filter| B(String Length)
@@ -60,21 +61,23 @@ graph LR
   L --> M[(Database)]
 ```
 
-
 # Processing
 
 Again, we don't need to reinvent the wheel here. We'll be using a combination of:
 
-+ Sentence Transformers for embeddings
-  + Second embedding for Q+A 
-+ UMAP for dimensionality reduction
-TODO: finalise this with Timbo
-+ kMEans clustering for high-level clusters
-+ HDBScan for tighter, more specific clusters
+-   Sentence Transformers for embeddings
 
-- We're toying with the idea of a separate, universal landscape model for the 3 topics we'll be including in the demo (automotive, fashion, technology) which would hopefully help us find universal spam clusters, but we may not get around to this.
+    -   Second embedding for Q+A
 
-- Input from sheets -> Clean -> Embed (all-mpnet-base-v2) -> Dim. Reduction (20-30) -> Cluster + Topic -> Dim. Reduction (2 or 3 dims.)
+-   UMAP for dimensionality reduction TODO: finalise this with Timbo
+
+-   kMEans clustering for high-level clusters
+
+-   HDBScan for tighter, more specific clusters
+
+-   We're toying with the idea of a separate, universal landscape model for the 3 topics we'll be including in the demo (automotive, fashion, technology) which would hopefully help us find universal spam clusters, but we may not get around to this.
+
+-   Input from sheets -\> Clean -\> Embed (all-mpnet-base-v2) -\> Dim. Reduction (20-30) -\> Cluster + Topic -\> Dim. Reduction (2 or 3 dims.)
 
 Processor:
 
@@ -88,4 +91,3 @@ flowchart LR
     F --> G[Save to DB]
 
 ```
-

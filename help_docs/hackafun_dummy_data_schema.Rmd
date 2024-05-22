@@ -1,0 +1,121 @@
+---
+title: "hackafun_dummy_data_and_schema"
+author: "Tim Mooney"
+date: "2024-05-14"
+output: html_document
+---
+
+# Overview:
+The purpose of this script is to load some dummy data from a previous project that contains information on three different industries with some likely columns for this project where we will be exploring; Automotive, Health & Beauty as well as Food & Beverage. 
+The task will be to load three categories(they don't necessarily have to correspond with the three previously mentioned), and then wrangle these data sets for any appropriate columns and then save to the drive for access. 
+
+Steps:
+- Load each dataset
+- Wrangle columns for each dataset
+- Define the schema(database columns) for DemoApp workflow
+- Save each dataset
+
+load libraries
+```{r}
+library(tidyverse)
+```
+
+# Automotive Data
+#### Load Data
+```{r}
+data_automotive <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/internal_projects/Brand_Trust/data/automotive/Brand_Trust_-_Automotive_Industry.csv") %>%
+  janitor::clean_names() %>% 
+  LimpiaR::limpiar_na_cols(0.1) %>% 
+  dplyr::mutate(text_copy = text,
+                universal_message_id = dplyr::row_number()) # mutate a dummy message_id column 
+```
+#### Wrangle Automotive Columns
+```{r}
+data_automotive <- data_automotive  %>% 
+  dplyr::rename(sentiment = tone) %>% 
+  dplyr::mutate(date = lubridate::as_date(dmy_hms(date))) %>% 
+  tidyr::drop_na(date) %>% 
+  dplyr::select(date, text, text_copy, sentiment, permalink, screen_name, platform, post_type, universal_message_id)
+```
+#### Save Automotive Data
+```{r}
+# 12,690 posts
+write_csv(data_automotive, "data/dummy_data/dummy_data_automotive.csv")
+```
+
+
+# Fashion Data
+#### Load Data
+```{r}
+data_fashion <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/internal_projects/Brand_Trust/data/fashion/Brand_Trust_-_Fashion.csv") %>%
+  janitor::clean_names() %>% 
+  LimpiaR::limpiar_na_cols(0.1) %>% 
+  dplyr::mutate(text_copy = text,
+                universal_message_id = dplyr::row_number()) # mutate a dummy message_id column 
+```
+#### Wrangle Fashion Columns
+```{r}
+data_fashion <- data_fashion %>% 
+  dplyr::rename(sentiment = tone) %>% 
+  dplyr::mutate(date = lubridate::as_date(dmy_hms(date))) %>% 
+  tidyr::drop_na(date) %>% 
+  dplyr::select(date, text, text_copy, sentiment, permalink, screen_name, platform, post_type, universal_message_id)
+```
+#### Save Fashion Data
+```{r}
+# 1,067 posts
+write_csv(data_fashion, "data/dummy_data/dummy_data_fashion.csv")
+```
+
+# Technology Data
+#### Load Data
+```{r}
+data_technology <- read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/internal_projects/Brand_Trust/data/technology/Brand_Trust_-_Technology.csv") %>%
+  janitor::clean_names() %>% 
+  LimpiaR::limpiar_na_cols(0.1) %>% 
+  dplyr::mutate(text_copy = text,
+                universal_message_id = dplyr::row_number()) # mutate a dummy message_id column 
+```
+#### Wrangle Technology Columns
+```{r}
+data_technology <- data_technology %>% 
+  dplyr::rename(sentiment = tone) %>% 
+  dplyr::mutate(date = lubridate::as_date(dmy_hms(date))) %>% 
+  tidyr::drop_na(date) %>% 
+  dplyr::select(date, text, text_copy, sentiment, permalink, screen_name, platform, post_type, universal_message_id)
+```
+#### Save Technology Data
+```{r}
+# 43,649 posts
+write_csv(data_technology, "data/dummy_data/dummy_data_technology.csv")
+```
+
+# Schema
+#### Define Schema
+```{r}
+# NOTE: An additional 7 columns derived from the processing steps will be added; V1, V2 + V1, V2, V3 + cluster_column
+all_joined <- rbind(data_automotive, data_fashion, data_technology)
+original_columns <- names(all_joined)
+# V1 and V2 for reducing to 2D, v1, v2, v3 for 3D
+processing_columns <- c("V1", "V2", "v1", "v2", "v3", "kmeans_cluster", "hdbscan_clutser")
+
+# define the full schema by joining both lists of column names
+schema <- c(original_columns, processing_columns)
+```
+#### List Schema
+```{r}
+schema_list <- c("date", "text", "text_copy", "sentiment", "permalink", "screen_name", "platform", "post_type", "universal_message_id", "V1", "V2", "v1", "v2", "v3", "kmeans_cluster", "hdbscan_clutser")   
+```
+
+# Join All and Save
+```{r}
+data_automotive <- data_automotive %>% 
+  dplyr::mutate(industry = "Automotive")
+data_fashion <- data_fashion %>% 
+  dplyr::mutate(industry = "Fashion")
+data_technology <- data_technology %>% 
+  dplyr::mutate(industry = "Technology")
+all_joined <- rbind(data_automotive, data_fashion, data_technology)
+write_csv(all_joined, "data/dummy_data/dummy_data_all_joined.csv")
+```
+

@@ -181,7 +181,7 @@ createUmap <- function(r){
                      x = 0.5,
                      font = list(
                          family = "Cinzel-Regular",
-                         size = 16
+                         size = 12
                        )
                    )) %>%
     plotly::config(

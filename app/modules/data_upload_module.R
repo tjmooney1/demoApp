@@ -36,8 +36,10 @@ dataUploadServer <- function(id, r){
       temp_file <- tempfile(fileext = ".rds")
       googledrive::drive_download(file, path = temp_file, overwrite = TRUE)
       readr::read_rds(temp_file) %>%
+        # let's try to remove these lines
         dplyr::rename(topic_title = kmeans_topic_title,
-                      topic = kmeans_topic)
+                      topic = kmeans_topic) %>%
+        dplyr::mutate(text_with_breaks = sapply(text, insert_line_breaks))
 
       # ----
     })

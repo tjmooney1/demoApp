@@ -1,0 +1,164 @@
+---
+title: "hosting_on_google_sheets"
+output: html_document
+date: "2024-05-22"
+---
+Trying to save to googlesheets with a toy df
+```{r}
+# Load necessary libraries
+library(jsonlite)
+# install.packages("future.apply")
+# install.packages("future")
+library(googlesheets4)
+
+
+# Create a sample matrix
+mat <- matrix(1:12, nrow = 4, ncol = 3)
+
+# Function to convert each row to a JSON string
+row_to_json <- function(row) {
+  toJSON(as.list(row))
+}
+
+# Apply the function to each row
+# nested_contents <- apply(mat, 1, row_to_json)
+system.time({
+  nested_contents <- future_apply(mat, 1, row_to_json)
+})
+
+# Create a data frame with nested contents
+df <- data.frame(nested_contents)
+
+
+# Authorize Google Sheets access (this will prompt you to log in to your Google account)
+gs4_auth()
+
+# Specify the Google Sheet URL or ID
+sheet_url <- "https://docs.google.com/spreadsheets/d/1_8aIEVFHA_mp1ci3evEC2pyCWj_b9LCH6fSiHXIOWoM/edit#gid=0"
+
+# Write the data frame to Google Sheets
+sheet_write(df, ss = sheet_url, sheet = "Sheet1")
+
+# Read the data frame from Google Sheets
+df2 <- read_sheet(sheet_url, sheet = "Sheet1")
+
+# Function to convert a JSON string back to a numeric vector
+json_to_row <- function(json_string) {
+  as.numeric(fromJSON(json_string))
+}
+
+# Apply the function to each nested JSON string in the data frame
+rows_list <- lapply(df2$nested_contents, json_to_row)
+
+# Combine the list of rows back into a matrix
+original_matrix <- do.call(rbind, rows_list)
+```
+
+Now let's try this for actual sentence embeddings
+```{r}
+library(jsonlite)
+library(googlesheets4)
+library(future.apply)
+ # example_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.csv")
+
+multi_qa_matrix_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings_quant.csv") %>% as.matrix()
+
+row_to_json <- function(row) {
+  jsonlite::toJSON(as.list(row))
+}
+
+system.time({
+  nested_embeddings <- apply(multi_qa_matrix_sentences, 1, row_to_json)
+})
+
+df <- data.frame(nested_embeddings)
+
+
+gs4_create("testing_json_upload",
+            sheets=df)
+```
+
+Ok that proved very slow, now trying with a csv delim style:
+```{r}
+# Load necessary libraries
+library(googlesheets4)
+
+# Create a sample large matrix
+# set.seed(123)
+mat <-  readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_sentences_embeddings.csv") %>% as.matrix()
+
+# Function to convert each row to a delimited string
+row_to_delimited <- function(row) {
+  paste(row, collapse = ",")
+}
+
+# Apply the function to each row
+system.time({
+  nested_contents <- apply(mat, 1, row_to_delimited)
+}) # 43.951
+
+# Create a data frame with nested contents
+df <- data.frame(nested_contents)
+df_shorter <- head(df, 190000)
+
+# Authorize Google Sheets access (this will prompt you to log in to your Google account)
+gs4_auth()
+
+gs4_create("testing_delim_upload",
+            sheets=df_shorter)
+
+# Specify the Google Sheet URL or ID
+# sheet_url <- "https://docs.google.com/spreadsheets/d/1mupUmDYkQEOWXkjxwxtQplcEZdG4AwShXBC7Fx72128/edit#gid=0"
+
+# Write the data frame to Google Sheets
+sheet_write(df, ss = sheet_url, sheet = "Sheet1")
+
+```
+I published this app and it works woooooooo!!
+```{r}
+options(
+  # whenever there is one account token found, use the cached token
+  gargle_oauth_email = TRUE,
+  # specify auth tokens should be stored in a hidden directory ".secrets"
+  gargle_oauth_cache = "help_docs/.secrets"
+)
+
+# run this in the console
+# googledrive::drive_auth()
+
+# check that the auth token is stored in secrets
+# list.files("help_docs/.secrets/")
+
+# googledrive::drive_auth()
+
+# Load packages
+library(shiny)
+
+ui <- shiny::fluidPage(
+  shiny::verbatimTextOutput("random_post"),
+  shiny::actionButton("shuffle_post", "New Post")
+)
+
+server <- function(input, output, session) {
+  
+  gs_df <- reactive({
+    file <- googledrive::drive_get("for_app/cosmetic_sentences_embeddings.rds")
+    temp_file <- tempfile(fileext = ".rds")
+    file_download <- googledrive::drive_download(file, path = temp_file, overwrite = TRUE)
+    gs_df <- readr::read_rds(temp_file)
+  })
+
+  random_int <- shiny::eventReactive(input$shuffle_post, {
+    sample(1:nrow(gs_df()), 1)
+  })
+
+  output$random_post <- shiny::renderPrint({
+    gs_df()[random_int(),]
+  })
+
+}
+
+# Run the shiny application
+shinyApp(ui, server)
+
+```

@@ -47,26 +47,49 @@ insert_line_breaks <- function(text, n = 10) {
 #   return(new_colour_hex)
 # }
 
-process_sentences <- function(doc_id, example_sentences) {
+# process_sentences <- function(doc_id, example_sentences) {
+#   doc_id %>%
+#     dplyr::group_by(document) %>% # Change to appropriate document column
+#     dplyr::mutate(
+#       sentences = list(sentence),
+#       text_copy = dplyr::first(text_copy) # Change to appropriate text column
+#     ) %>%
+#     dplyr::ungroup() %>%
+#     dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
+#     dplyr::distinct(document, .keep_all = TRUE) %>% # Change to appropriate document column
+#     dplyr::right_join(example_sentences) %>%
+#     dplyr::mutate(highlighted = dplyr::case_when(is.na(cosine_sim) ~ FALSE,
+#                                           T ~ TRUE)) %>% # Change to appropriate document column
+#     dplyr::distinct(document, .keep_all = TRUE) %>%
+#     dplyr::mutate(test_text = dplyr::case_when(
+#       is.na(cosine_sim) ~ text_copy,
+#       TRUE ~ test_text
+#     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
+#     # dplyr::mutate(row_id = row_number()) %>% 
+#     dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, rowid, topic)
+# }
+
+process_sentences_quant <- function(doc_id, example_sentences) {
   doc_id %>%
-    dplyr::group_by(document) %>% # Change to appropriate document column
+    dplyr::group_by(rowid) %>% # Change to appropriate document column
     dplyr::mutate(
       sentences = list(sentence),
       text_copy = dplyr::first(text_copy) # Change to appropriate text column
     ) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
-    dplyr::distinct(document, .keep_all = TRUE) %>% # Change to appropriate document column
+    dplyr::distinct(rowid, .keep_all = TRUE) %>% # Change to appropriate document column
     dplyr::right_join(example_sentences) %>%
-    dplyr::mutate(highlighted = dplyr::case_when(is.na(cosine_sim) ~ FALSE,
-                                          T ~ TRUE)) %>% # Change to appropriate document column
-    dplyr::distinct(document, .keep_all = TRUE) %>%
+    dplyr::mutate(highlighted = dplyr::case_when(is.na(dot_prod) ~ FALSE,
+                                                 T ~ TRUE)) %>% # Change to appropriate document column
+    dplyr::distinct(rowid, .keep_all = TRUE) %>%
     dplyr::mutate(test_text = dplyr::case_when(
-      is.na(cosine_sim) ~ text_copy,
+      is.na(dot_prod) ~ text_copy,
       TRUE ~ test_text
     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
-    # dplyr::mutate(row_id = row_number()) %>% 
-    dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, universal_message_id, topic, sender_screen_name)
+    # dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, universal_message_id, topic, sender_screen_name)
+    dplyr::select(rowid, text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
+
 }
 
 # generate_topic_colours <- function(example_sentences_2) {
@@ -157,6 +180,29 @@ cosine_calculation_threshold_sentence <- function(reference_statement,
     dplyr::relocate(cosine_sim) %>%
     dplyr::filter(cosine_sim > cosine_sim_threshold) %>%
     dplyr::arrange(desc(cosine_sim))
+  
+  return(current_sentence_candidates)
+  
+}
+
+# Dot product calculation -------------------------------------------
+
+quant_dot_product_threshold_sentence <- function(reference_statement,
+                                                 dot_prod_threshold = 5,
+                                                 embedding_model,
+                                                 sentence_matrix,
+                                                 df) {
+  ref_sentence <- reference_statement
+  
+  reference_vector <- embed_query(query = ref_sentence, embedding_model = embedding_model)
+  
+  sentence_dot_products <- sentence_matrix %*% reference_vector
+  
+  current_sentence_candidates <- df %>%
+    dplyr::mutate(dot_prod = as.numeric(sentence_dot_products)) %>%
+    dplyr::relocate(dot_prod) %>%
+    dplyr::filter(dot_prod > dot_prod_threshold) %>%
+    dplyr::arrange(desc(dot_prod))
   
   return(current_sentence_candidates)
   

@@ -10,12 +10,22 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Load and clean data
 
+```{r}
+library(tidyverse)
+```
+
 ```{r cars}
-beauty <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/hackafun_cosmetic_joined.csv")
+old_beauty <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/hackafun_cosmetic_joined.csv")
 
 # beauty_embeddings <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_embeddings.rds")
 
-tim_beauty <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/hackafun_cosmetic_joined.csv")
+beauty <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/hackafun_cosmetic_joined.csv") %>%
+  dplyr::rename(text_clean = text_copy)
+
+
+beauty_reduced_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_reduced_embeddings.csv") %>%
+  dplyr::select(-1)
+  
 ```
 
 ```{r}
@@ -150,11 +160,12 @@ clean_text_ar <- function(df, text_var = message, tolower = TRUE, remove_hashtag
 
 ```
 
+This all quick work I did for the demo - should use Tim's dataset not this
 ```{r}
 # mentions_regex <- c("(?<=@)[:graph:]*(?![:graph:])|(?<=@)[:graph:]*$", "@")
 mentions_regex <- "@[a-z,A-Z]*?"
 
-beauty_clean <- beauty %>%
+beauty_clean <- old_beauty %>%
   dplyr::mutate(text_clean = text) %>%
   clean_text_ar(text_var = text_clean, 
                 tolower = FALSE, 
@@ -181,7 +192,7 @@ reduced_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/dat
 reduced_embeddings2d <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_joined_reduced_embeddings2d_ar.csv")
 ```
 
-## Topic Modelling
+## Quick Topic Modelling for Demo
 
 ```{r}
 library(BertopicR)
@@ -242,24 +253,244 @@ beauty_topics %>%
   readr::write_rds("app/data/cosmetic_data.rds")
 ```
 
-# Quick edit of Jamie's sentence df and save to repo
+# Topic Modelling to remove spam
+```{r}
+library(BertopicR)
+
+clusterer <- bt_make_clusterer_hdbscan(min_cluster_size = 100L, 
+                                       min_samples = 50L,
+                                       cluster_selection_method = "leaf")
+
+model <- bt_compile_model(embedding_model = bt_empty_embedder(),
+                          reduction_model = bt_empty_reducer(),
+                          clustering_model = clusterer)
+bt_fit_model(model, 
+             beauty$text_clean, 
+             embeddings = beauty_reduced_embeddings)
+
+model$get_topic_info() %>% 
+  dplyr::select(-Representative_Docs, - Representation) %>%
+  DT::datatable()
+
+
+representation <- bt_representation_openai(fitted_model = model,
+                         documents = beauty$text_clean,
+                         openai_model = "gpt-3.5-turbo",
+                         api_key = Sys.getenv("OPENAI_API_KEY"),
+                         nr_repr_docs = 150L,
+                         nr_sample = 1000L,
+                         chat = TRUE)
+
+topic_summary <- model$get_topic_info() %>%
+  dplyr::select(-Representative_Docs, - Representation) %>%
+  dplyr::mutate(openai_representation = representation)
+
+topic_summary %>% DT::datatable()
+
+beauty %>%
+  mutate(topic = model$topics_) %>%
+  filter(topic == 50) %>%
+  sample_n(100) %>% select(text, text_clean) %>% DT::datatable()
+```
+
+The following are clusters that need to be removed:
+ c(1, 3, 11, 13, 15, 23, 24, 25, 27, 28, 31, 35, 37, 
+ 38, 39, 50, 55, 59, 62, 69, 71, 75, 77, 79, 82,  84, 86, 
+ 87, 92, 94, 95, 96, 97)
+
+The following are interesting clusters:
+- 72: Charlotte Tilbury X F1
+- Don't remember the numbers but Becky X Maybelline and human Dior
+
+Before actually removing the topics I will perform outlier reduction
 
 ```{r}
-cosmetic_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.csv")
+beauty_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_BAAI_normalised_embeddings.csv") %>%
+  dplyr::select(-1)
 
-cosmetic_sentences_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings_quant.csv")
+embedder <- bt_make_embedder_st("BAAI/bge-large-en-v1.5")
+outliers <- bt_outliers_embeddings(fitted_model = model,
+                                   documents = beauty$text_clean,
+                                   topic = model$topics_,
+                                   embeddings = beauty_embeddings,
+                                   embedding_model = embedder,
+                                   threshold = 0.1)
 
-cosmetic_sentences %>% colnames()
+outliers %>% 
+  filter(current_topics == -1, new_topics == 49) %>% 
+  select(message) %>% DT::datatable()
 
-cosmetic_sentences_topics <- cosmetic_sentences %>% 
-  dplyr::select(-c("V1", "V2")) %>%
-  dplyr::left_join(beauty_topics %>% 
-                     dplyr::select(universal_message_id, topic, topic_title, V1, V2),
-                   by = "universal_message_id") 
-  
-cosmetic_sentences_topics %>%
-  readr::write_rds("app/data/cosmetic_sentences.rds")
+remove_clusters <- c(1, 3, 11, 13, 15, 23, 24, 25, 27, 28, 31, 35, 37, 
+ 38, 39, 50, 55, 59, 62, 69, 71, 75, 77, 79, 82,  84, 86, 
+ 87, 92, 94, 95, 96, 97)
 
-cosmetic_sentences_embeddings %>%
-  readr::write_rds("app/data/cosmetic_sentences_embeddings.rds")
+beauty_hdb <- beauty %>%
+  mutate(hdb_topic = outliers$new_topics) %>%
+  filter(!hdb_topic %in% remove_clusters)
+
+
+hdb_topic_lookup <-  topic_summary %>% 
+  select(Topic, hdb_topic_title = openai_representation)
+
+beauty_hdb %>%
+  left_join(hdb_topic_lookup, by = join_by("hdb_topic" == "Topic")) %>% 
+  select(hdb_topic, openai_representation) )
+
+
+beauty_hdb %>%
+  readr::write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_hdb_topics.csv")
 ```
+
+Now let's do some kmeans - first - do I need to rembed?
+```{r}
+kept_rows <- which(!outliers$new_topics %in% remove_clusters)
+beauty_embeddings_subset <- beauty_embeddings[kept_rows,]
+beauty_hdb_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_hdb_topics_embeddings.csv") %>%
+  dplyr::select(-1)
+
+round(beauty_hdb_embeddings[1:50, 1:10], 5) == round(beauty_embeddings_subset[1:50, 1:10], 5)
+```
+
+Conclusion - not exactly the same but close enough that I don't think we need to bother - we would need to re-reduce though. I will do this on colab witht the recalculated embeddings seen as we already have them.
+
+```{r}
+beauty_reduced_embeddings_hdb <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_reduced_hdb_embeddings.csv")
+
+
+kmeans_clusterer <- bt_make_clusterer_kmeans(n_clusters = 10L)
+kmeans_clusters <- bt_do_clustering(kmeans_clusterer, beauty_reduced_embeddings_hdb)
+
+cont_tab <- table(kmeans_clusters, beauty_hdb$hdb_topic)
+```
+
+
+Looks like the hdbscan clusters fall fairly neatly into the kmeans ones. Let's save the results.
+```{r}
+kmeans_model <- bt_compile_model(embedding_model = bt_empty_embedder(),
+                          reduction_model = bt_empty_reducer(),
+                          clustering_model = kmeans_clusterer)
+bt_fit_model(kmeans_model, 
+             beauty_hdb$text_clean, 
+             embeddings = beauty_reduced_embeddings_hdb)
+
+kmeans_model$get_topic_info() %>% 
+  dplyr::select(-Representative_Docs, - Representation) %>%
+  DT::datatable()
+
+
+kmeans_representation <- bt_representation_openai(fitted_model = kmeans_model,
+                         documents = beauty_hdb$text_clean,
+                         openai_model = "gpt-3.5-turbo",
+                         api_key = Sys.getenv("OPENAI_API_KEY"),
+                         nr_repr_docs = 150L,
+                         nr_sample = 1000L,
+                         chat = TRUE)
+
+
+kmeans_topic_summary <- kmeans_model$get_topic_info() %>%
+  dplyr::select(-Representative_Docs, - Representation) %>%
+  dplyr::mutate(openai_representation = kmeans_representation)
+
+kmeans_topic_summary %>% DT::datatable()
+
+kmeans_topic_lookup <- kmeans_topic_summary %>%
+  select(Topic, kmeans_topic_title = openai_representation)
+
+insert_line_breaks <- function(text, n = 10) {
+  words <- strsplit(text, " ")[[1]]
+  paste(sapply(seq(1, length(words), n), function(i) {
+    paste(words[i:min(i + n - 1, length(words))], collapse = " ")
+  }), collapse = "<br>")
+}
+
+
+beauty_topics <- beauty_hdb %>%
+  mutate(text_with_breaks = sapply(text, insert_line_breaks),
+         kmeans_topic = kmeans_model$topics_) %>%
+  left_join(kmeans_topic_lookup, by = join_by("kmeans_topic" == "Topic")) %>%
+  left_join(hdb_topic_lookup, by = join_by("hdb_topic" == "Topic")) %>%
+  mutate(hdb_topic_title = unlist(hdb_topic_title),
+         keans_topic_title = unlist(kmeans_topic_title)) 
+
+beauty_topics %>%
+  write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_kmeans_and_hdb_topics.csv")
+```
+
+Now I should maybe tokenise
+
+```{r}
+install.packages("tidytext")
+beauty_sentences <- tidytext::unnest_tokens(
+  beauty_topics,
+  output = sentences,
+  input = text_clean,
+  token = "sentences",
+  to_lower = FALSE,
+  drop = FALSE
+  )
+
+beauty_sentences %>%
+  write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_sentences.csv")
+```
+
+save sentence embeddings as rds
+```{r}
+cosmetic_sentence_embeddings <- readr::read_csv(
+  "~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_sentences_embeddings.csv"
+)
+
+cosmetic_sentence_embeddings %>% 
+  readr::write_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings.rds")
+```
+<!-- ```{r} -->
+<!-- topic_lookup <- topic_summary %>%  -->
+<!--   dplyr::select(Topic, representation) -->
+
+<!-- beauty_topics <- beauty_clean %>% -->
+<!--   dplyr::mutate(topic = model$topics_, -->
+<!--                 text_with_breaks = sapply(text, insert_line_breaks)) %>% -->
+<!--   dplyr::left_join(topic_lookup,  -->
+<!--                    by = dplyr::join_by("topic" == "Topic")) %>% -->
+<!--   dplyr::rename(topic_title = representation) %>% -->
+<!--   dplyr::select(-c(".document%%num_cuts", "V1", "V2")) %>% -->
+<!--   cbind(reduced_embeddings2d) %>%  -->
+<!--   dplyr::rename(V1 = `0`, V2 = `1`) %>% -->
+<!--   dplyr::mutate(rowid = dplyr::row_number(), -->
+<!--                 topic_title = dplyr::case_when( -->
+<!--                   topic == 0 ~ "Hair Care", -->
+<!--                   topic == 1 ~ "Moisturising\Skincare", -->
+<!--                   topic == 2 ~ "Perfumes", -->
+<!--                   topic == 3 ~ "Social Issues", -->
+<!--                   topic == 4 ~ "Colognes", -->
+<!--                   topic == 5 ~ "Skincare for\nAcne/Wrinkles", -->
+<!--                   topic == 6 ~ "Skin Conditions", -->
+<!--                   topic == 7 ~ "Feeling Radiant", -->
+<!--                   topic == 8 ~ "Designers", -->
+<!--                   topic == 9 ~ "Makeup", -->
+<!--                   TRUE ~ NA)) -->
+
+<!-- beauty_topics %>% -->
+<!--   readr::write_rds("app/data/cosmetic_data.rds") -->
+<!-- ``` -->
+
+<!-- # Quick edit of Jamie's sentence df and save to repo -->
+
+<!-- ```{r} -->
+<!-- cosmetic_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.csv") -->
+
+<!-- cosmetic_sentences_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings_quant.csv") -->
+
+<!-- cosmetic_sentences %>% colnames() -->
+
+<!-- cosmetic_sentences_topics <- cosmetic_sentences %>%  -->
+<!--   dplyr::select(-c("V1", "V2")) %>% -->
+<!--   dplyr::left_join(beauty_topics %>%  -->
+<!--                      dplyr::select(universal_message_id, topic, topic_title, V1, V2), -->
+<!--                    by = "universal_message_id")  -->
+
+<!-- cosmetic_sentences_topics %>% -->
+<!--   readr::write_rds("app/data/cosmetic_sentences.rds") -->
+
+<!-- cosmetic_sentences_embeddings %>% -->
+<!--   readr::write_rds("app/data/cosmetic_sentences_embeddings.rds") -->
+<!-- ``` -->

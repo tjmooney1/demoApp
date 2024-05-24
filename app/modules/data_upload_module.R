@@ -5,8 +5,8 @@ dataUploadUi <- function(id){
       shinyWidgets::pickerInput(
         inputId = ns("dataset"),
         label = "Dataset",
-        choices = c("Automotive",
-                    "Beauty & Cosmetics",
+        choices = c("Beauty & Cosmetics",
+                    "Automotive",
                     "Food & Beverages"),
         options = list(iconBase = "fas"),
         choicesOpt = list(

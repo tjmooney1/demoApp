@@ -80,14 +80,16 @@ createUmap <- function(r){
                       paste0(
                         "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
                         "<i>", "\"", text_with_breaks, "\"", "</i> - @", sender_screen_name, "<br><br>",
-                        "<b><span style='color:", adjust_colour_darker(assigned_colour, og_val = 1), ";'>", topic, "</span></b>",
+                        "<b><span style='color:", 
+                        # adjust_colour_darker(assigned_colour, og_val = 1), 
+                        "#000000", ";'>", topic_title, "</span></b>",
                         "</span>")
       ) %>%
       plotly::plot_ly(x = ~V1,
                       y = ~V2,
                       width = 900, height = 700,
-                      color = ~as.factor(topic),
-                      colors = adjust_colour_lighter(colours, og_val = 0.8),
+                      color = ~topic_title,
+                      colors = ~adjust_colour_lighter(colours, og_val = 0.8),
                       key = ~universal_message_id,
                       customdata = ~sender_screen_name,
                       type = "scattergl",
@@ -114,12 +116,15 @@ createUmap <- function(r){
                       paste0(
                         "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
                         "<i>", "\"", text_with_breaks, "\"", "</i> - @", sender_screen_name, "<br><br>",
-                        "<b><span style='color:", adjust_colour_darker(assigned_colour, og_val = 1), ";'>", topic, "</span></b>",
+                        "<b><span style='color:", "#000000",
+                        # adjust_colour_darker(assigned_colour, og_val = 1), 
+                        ";'>", topic_title, "</span></b>",
                         "</span>"))
 
     
     p <- plotly::plot_ly(width = 900, height = 700,
-                         colors = colours,
+                         # colors = colours,
+                         colors = adjust_colour_lighter(colours, og_val = 0.8),
                          source = "umap_plot"
     ) %>%
       plotly::add_trace(data = highlight_points,
@@ -127,9 +132,9 @@ createUmap <- function(r){
                         type = "scattergl",
                         mode = "markers",
                         key = ~universal_message_id,
-                        color = ~as.factor(topic),
+                        color = ~topic_title,
                         showlegend = TRUE,
-                        marker = list(opacity = 0.7, size = 4),
+                        marker = list(opacity = 0.7, size = 10),
                         hoverinfo ="text",
                         text = ~hover_text,
                         hoverinfo = "text",
@@ -170,6 +175,7 @@ createUmap <- function(r){
                      title = ""
                    ),
                    legend = list(
+                     itemsizing = "constant",
                      orientation = "h",
                      xanchor = "center",  # use center of legend as anchor
                      x = 0.5,

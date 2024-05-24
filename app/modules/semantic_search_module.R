@@ -34,9 +34,9 @@ semantic_searchServer <- function(id, r) {
     # multi_qa_matrix_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings_quant.csv") %>%
     #                                                as.matrix()
     
-    example_sentences <- readr::read_rds(here::here("app/data/cosmetic_sentences.rds"))
-    
-    multi_qa_matrix_sentences <- readr::read_rds(here::here("app/data/cosmetic_sentences_embeddings.rds")) %>%
+    example_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.rds")
+
+    multi_qa_matrix_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings.rds") %>%
       as.matrix()
     
     # Reactive values to store intermediate data

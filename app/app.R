@@ -26,6 +26,13 @@ source(here("app/modules/embed_texts_module.R"))
 source(here("app/ui.R"))
 source(here("app/server.R"))
 
+options(
+  # whenever there is one account token found, use the cached token
+  gargle_oauth_email = TRUE,
+  # specify auth tokens should be stored in a hidden directory ".secrets"
+  gargle_oauth_cache = "app/.secrets"
+)
+
 
 # Run an app the IDE way if in an interactive session, else run it the terminal/deployment way:
 if(interactive()){

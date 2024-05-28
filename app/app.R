@@ -22,6 +22,8 @@ source(here("app/modules/data_upload_module.R"))
 source(here("app/modules/semantic_search_module.R"))
 source(here("app/modules/embed_texts_module.R"))
 
+source(here("app/www/x_logo.png"))
+
 # Source App Files
 source(here("app/ui.R"))
 source(here("app/server.R"))

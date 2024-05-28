@@ -9,6 +9,6 @@ server <- function(input, output, session) {
   umapServer("umap_panel", r)
   
   embed_text_server("embed_text_panel", r)
-  semantic_searchServer("semantic_search_panel", r)
+  searchServer("semantic_search_panel", r)
 }
 

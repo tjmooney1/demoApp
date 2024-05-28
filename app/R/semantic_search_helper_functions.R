@@ -47,48 +47,47 @@ insert_line_breaks <- function(text, n = 10) {
 #   return(new_colour_hex)
 # }
 
-# process_sentences <- function(doc_id, example_sentences) {
-#   doc_id %>%
-#     dplyr::group_by(document) %>% # Change to appropriate document column
-#     dplyr::mutate(
-#       sentences = list(sentence),
-#       text_copy = dplyr::first(text_copy) # Change to appropriate text column
-#     ) %>%
-#     dplyr::ungroup() %>%
-#     dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
-#     dplyr::distinct(document, .keep_all = TRUE) %>% # Change to appropriate document column
-#     dplyr::right_join(example_sentences) %>%
-#     dplyr::mutate(highlighted = dplyr::case_when(is.na(cosine_sim) ~ FALSE,
-#                                           T ~ TRUE)) %>% # Change to appropriate document column
-#     dplyr::distinct(document, .keep_all = TRUE) %>%
-#     dplyr::mutate(test_text = dplyr::case_when(
-#       is.na(cosine_sim) ~ text_copy,
-#       TRUE ~ test_text
-#     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
-#     # dplyr::mutate(row_id = row_number()) %>% 
-#     dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, rowid, topic)
-# }
+process_sentences <- function(doc_id, example_sentences) {
+  doc_id %>%
+    dplyr::group_by(universal_message_id) %>% # Change to appropriate document column
+    dplyr::mutate(
+      sentences = sentences,
+      text_copy = dplyr::first(text_clean) # Change to appropriate text column
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
+    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>% # Change to appropriate document column
+    dplyr::right_join(example_sentences) %>%
+    dplyr::mutate(highlighted = dplyr::case_when(is.na(cosine_sim) ~ FALSE,
+                                          T ~ TRUE)) %>% # Change to appropriate document column
+    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>%
+    dplyr::mutate(test_text = dplyr::case_when(
+      is.na(cosine_sim) ~ text_copy,
+      TRUE ~ test_text
+    )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) 
+    # dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, kmeans_topic, hdban_topic, kmeans_topic_title, hdban_topic_title)
+}
 
 process_sentences_quant <- function(doc_id, example_sentences) {
   doc_id %>%
-    dplyr::group_by(rowid) %>% # Change to appropriate document column
+    # dplyr::group_by(rowid) %>% # Change to appropriate document column
+    dplyr::group_by(universal_message_id) %>%
     dplyr::mutate(
       sentences = list(sentence),
       text_copy = dplyr::first(text_copy) # Change to appropriate text column
     ) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
-    dplyr::distinct(rowid, .keep_all = TRUE) %>% # Change to appropriate document column
+    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>% # Change to appropriate document column
     dplyr::right_join(example_sentences) %>%
     dplyr::mutate(highlighted = dplyr::case_when(is.na(dot_prod) ~ FALSE,
                                                  T ~ TRUE)) %>% # Change to appropriate document column
-    dplyr::distinct(rowid, .keep_all = TRUE) %>%
+    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>%
     dplyr::mutate(test_text = dplyr::case_when(
       is.na(dot_prod) ~ text_copy,
       TRUE ~ test_text
     )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
-    # dplyr::select(rowid, text = text_with_breaks, highlighted, V1, V2, universal_message_id, topic, sender_screen_name)
-    dplyr::select(rowid, text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
+    dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
   
 }
 

@@ -94,7 +94,7 @@ embed_switch <- function(permalink) {
     source,
     "reddit" = create_reddit_embed(permalink),
     "instagram" = create_instagram_embed(permalink),
-    "twitter" = create_tweet_embed(permalink)
+    "x" = create_tweet_embed(permalink)
   )
   
   return(embed )

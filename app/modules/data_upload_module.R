@@ -2,17 +2,23 @@ dataUploadUi <- function(id){
   ns <- shiny::NS(id)
   shiny::tagList(
     shiny::br(),
-      shinyWidgets::pickerInput(
-        inputId = ns("dataset"),
-        label = "Dataset",
-        choices = c("Beauty & Cosmetics",
-                    "Automotive",
-                    "Food & Beverages"),
-        options = list(iconBase = "fas"),
-        choicesOpt = list(
-          icon = c("glyphicon-cog", "glyphicon-eye-open", "glyphicon-apple" )
-        )
-      )
+    tags$head(
+      # Ensure Font Awesome is included
+      tags$link(rel = "stylesheet", href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
+    ),
+    shinyWidgets::pickerInput(
+      inputId = ns("dataset"),
+      label = "Dataset",
+      choices =  c("Beauty & Cosmetics",
+                   "Automotive",
+                   "Food & Beverages"),
+      options = list(`icon-base` = "fa"),
+      choicesOpt = list(
+        icon = c("fa-spa",
+                 "fa-car",
+                 "fa-burger")
+      ),
+    )
   )
 }
 

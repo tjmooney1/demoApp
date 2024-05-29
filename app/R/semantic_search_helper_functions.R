@@ -132,7 +132,7 @@ generate_cluster_lookup <- function(example) {
 }
 
 
-# Embed query -------------------------------------------------------------
+# Embed Query ------------------------------------------------------------
 
 embed_query <- function(query, embedding_model) {
   
@@ -140,19 +140,31 @@ embed_query <- function(query, embedding_model) {
   base_hf_st_url <- "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/"
   endpoint_hf_st <- embedding_model
   
-  # Create the request
+  # create the request with retry mechanism
   response <- httr2::request(base_hf_st_url) %>%
     httr2::req_url_path_append(endpoint_hf_st) %>% 
     httr2::req_headers(
       "Authorization" = paste("Bearer", api_token)
     ) %>%
     httr2::req_body_json(query) %>%
+    httr2::req_retry(max_tries = 10, # select a maximum of 10 retries
+                     backoff = ~ 2, # constant 2s delay after failure
+                     is_transient = \(resp) httr2::resp_status(resp) %in% c(429, 500, 503)) %>% # specify common transient errors
     httr2::req_perform()
   
+  # if response status isn't 200(OK), stop function
+  if (httr2::resp_status(response) != 200) {
+    # if transient error met, print message
+    if (httr2::resp_status(response) %in% c(429, 500, 503)) {
+      message("Max retries reached and timed out, please try again or check server-side connection.")
+    }
+    stop("Request failed with status: ", httr2::resp_status(response))
+  }
+  
+  # return cosine similarity matrix
   data <- httr2::resp_body_json(response) %>% 
     unlist() %>% 
     as.matrix()
-  
   return(data)
 }
 

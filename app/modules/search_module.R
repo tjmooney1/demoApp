@@ -46,33 +46,30 @@ searchServer <- function(id, r) {
       as.matrix()
     
     # Reactive values to store intermediate data
-    reactive_vals <- reactiveValues(
-      example_sentences_2 = NULL,
-      dataframe = NULL,
-      grey_points = NULL,
-      highlight_points = NULL,
-      eg_cluster_lookup = NULL,
-      topic_colours = NULL 
-    )
+    # reactive_vals <- reactiveValues(
+    #   example_sentences_2 = NULL,
+    #   dataframe = NULL,
+    #   grey_points = NULL,
+    #   highlight_points = NULL,
+    #   eg_cluster_lookup = NULL,
+    #   topic_colours = NULL 
+    # )
     
     observeEvent(input$update_plot, {
       
-      keyword_search <- reactive({
-        shiny::validate(
-          shiny::need(grepl("^[a-zA-Z0-9 ]*$", input$search_term), "Invalid characters detected! Please use only alphanumeric characters and spaces.")
+      shiny::validate(
+        shiny::need(grepl("^[a-zA-Z0-9 ]*$", input$search_term), "Invalid characters detected! Please use only alphanumeric characters and spaces.")
         )
-        
-        r$df() %>%
-          dplyr::filter(grepl(input$search_term, text_clean, ignore.case = TRUE))
-          # dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
-
-      })
+      
+      keyword_search <- r$df() %>%
+        dplyr::filter(grepl(input$search_term, text_clean, ignore.case = TRUE))
+        # dplyr::filter(grepl("face", text_clean, ignore.case = TRUE))
       
       semantic_similarity_output <- cosine_calculation_threshold_sentence(
         reference_statement = input$search_term,
         cosine_sim_threshold = input$semantic_sim_threshold,
         # reference_statement = "face",
-        # cosine_sim_threshold = 0.5,
+        # cosine_sim_threshold = 0.0,
         embedding_model = "multi-qa-mpnet-base-cos-v1",
         sentence_matrix = multi_qa_matrix_sentences,
         df = example_sentences
@@ -80,19 +77,26 @@ searchServer <- function(id, r) {
         process_sentences(example_sentences)
       
       r$highlight_df <- shiny::reactive({
-     
-        semantic_similarity_output %>%
-          dplyr::filter(highlighted == TRUE) %>%
-          dplyr::bind_rows(keyword_search()) %>%
-          dplyr::distinct(universal_message_id, .keep_all = TRUE) 
-          
+        
+        if(!is.null(semantic_similarity_output)){
+          semantic_similarity_output %>%
+            dplyr::filter(highlighted == TRUE) %>%
+            dplyr::bind_rows(keyword_search) %>%
+            dplyr::distinct(universal_message_id, .keep_all = TRUE) 
+        } else{
+          keyword_search
+        }
+        
         })
       
-      r$grey_df <- shiny::reactive(
-        
+      print(nrow(r$highlight_df()))
+      print(class(semantic_similarity_output))
+      r$grey_df <- shiny::reactive({
         r$df() %>%
           dplyr::anti_join(r$highlight_df(), by = "universal_message_id")
-      )
+      })
+      
+      print(nrow(r$grey_df()))
       
 
     })

@@ -22,72 +22,57 @@ insert_line_breaks <- function(text, n = 10) {
         collapse = "<br>")
   
 }
-# 
-# adjust_colour_lighter <- function(colour_hex, og_val) {
-#   
-#   rgb_vals <- col2rgb(colour_hex)
-#   
-#   rgb_new <- rgb_vals * og_val + 255 * (1 - og_val)
-#   
-#   rgb_new <- pmin(rgb_new, 255)
-#   
-#   new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
-#   return(new_colour_hex)
-# }
-# 
-# adjust_colour_darker <- function(colour_hex, og_val) {
-#   
-#   rgb_vals <- col2rgb(colour_hex)
-#   
-#   rgb_new <- rgb_vals * og_val
-#   
-#   rgb_new <- pmax(rgb_new, 0)
-#   
-#   new_colour_hex <- rgb(rgb_new[1,] / 255, rgb_new[2,] / 255, rgb_new[3,] / 255)
-#   return(new_colour_hex)
-# }
 
 process_sentences <- function(doc_id, example_sentences) {
-  doc_id %>%
-    dplyr::group_by(universal_message_id) %>% # Change to appropriate document column
-    dplyr::mutate(
-      sentences = sentences,
-      text_copy = dplyr::first(text_clean) # Change to appropriate text column
-    ) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
-    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>% # Change to appropriate document column
-    dplyr::right_join(example_sentences) %>%
-    dplyr::mutate(highlighted = dplyr::case_when(is.na(cosine_sim) ~ FALSE,
-                                          T ~ TRUE)) %>% # Change to appropriate document column
-    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>%
-    dplyr::mutate(test_text = dplyr::case_when(
-      is.na(cosine_sim) ~ text_copy,
-      TRUE ~ test_text
-    )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) 
-    # dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, kmeans_topic, hdban_topic, kmeans_topic_title, hdban_topic_title)
+  if (nrow(doc_id) == 0){
+    return(NULL)
+  } else {
+    doc_id %>%
+      dplyr::group_by(universal_message_id) %>% # Change to appropriate document column
+      dplyr::mutate(
+        sentences = sentences,
+        text_copy = dplyr::first(text_clean) # Change to appropriate text column
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
+      dplyr::distinct(universal_message_id, .keep_all = TRUE) %>% # Change to appropriate document column
+      dplyr::right_join(example_sentences) %>%
+      dplyr::mutate(highlighted = dplyr::case_when(is.na(cosine_sim) ~ FALSE,
+                                                   T ~ TRUE)) %>% # Change to appropriate document column
+      dplyr::distinct(universal_message_id, .keep_all = TRUE) %>%
+      dplyr::mutate(test_text = dplyr::case_when(
+        is.na(cosine_sim) ~ text_copy,
+        TRUE ~ test_text
+      )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) 
+  }
 }
 
 process_sentences_quant <- function(doc_id, example_sentences) {
-  doc_id %>%
-    # dplyr::group_by(rowid) %>% # Change to appropriate document column
-    dplyr::group_by(universal_message_id) %>%
-    dplyr::mutate(
-      sentences = list(sentence),
-      text_copy = dplyr::first(text_copy) # Change to appropriate text column
-    ) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
-    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>% # Change to appropriate document column
-    dplyr::right_join(example_sentences) %>%
-    dplyr::mutate(highlighted = dplyr::case_when(is.na(dot_prod) ~ FALSE,
-                                                 T ~ TRUE)) %>% # Change to appropriate document column
-    dplyr::distinct(universal_message_id, .keep_all = TRUE) %>%
-    dplyr::mutate(test_text = dplyr::case_when(
-      is.na(dot_prod) ~ text_copy,
-      TRUE ~ test_text
-    )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
-    dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
+  if (nrow(doc_id) == 0){
+    return(NULL)
+  } else {
+    df <- doc_id %>%
+      # dplyr::group_by(rowid) %>% # Change to appropriate document column
+      dplyr::group_by(universal_message_id) %>%
+      dplyr::mutate(
+        sentences = list(sentence),
+        text_copy = dplyr::first(text_copy) # Change to appropriate text column
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(test_text = purrr::map2_chr(text_copy, sentences, highlight_sentences)) %>%
+      dplyr::distinct(universal_message_id, .keep_all = TRUE) %>% # Change to appropriate document column
+      dplyr::right_join(example_sentences) %>%
+      dplyr::mutate(highlighted = dplyr::case_when(is.na(dot_prod) ~ FALSE,
+                                                   T ~ TRUE)) %>% # Change to appropriate document column
+      dplyr::distinct(universal_message_id, .keep_all = TRUE) %>%
+      dplyr::mutate(test_text = dplyr::case_when(
+        is.na(dot_prod) ~ text_copy,
+        TRUE ~ test_text
+      )) %>% dplyr::mutate(text_with_breaks = sapply(test_text, insert_line_breaks)) %>% 
+      dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
+    
+    return(df)
+  }
   
 }
 

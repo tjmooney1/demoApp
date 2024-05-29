@@ -107,42 +107,52 @@ createUmap <- function(r){
       )
   } else {
     grey_points <- r$grey_df()
-    highlight_points <- r$highlight_df() %>%
-      dplyr::mutate(
-                    assigned_colour = colours[kmeans_topic_title],
-                    hover_text = 
-                      paste0(
-                        "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
-                        "<i>", "\"", text_with_breaks, "\"", "</i> - @", sender_screen_name, "<br><br>",
-                        "<b><span style='color:", "#000000",
-                        # adjust_colour_darker(assigned_colour, og_val = 1), 
-                        ";'>", kmeans_topic_title, "</span></b>",
-                        "</span>"))
-
     
     p <- plotly::plot_ly(width = 900, height = 700,
                          # colors = colours,
                          colors = adjust_colour_lighter(colours, og_val = 0.8),
                          source = "umap_plot"
-    ) %>%
-      plotly::add_trace(data = highlight_points,
-                        x = ~V1, y = ~V2,
-                        type = "scattergl",
-                        mode = "markers",
-                        key = ~universal_message_id,
-                        color = ~kmeans_topic_title,
-                        showlegend = TRUE,
-                        marker = list(opacity = 0.7, size = 10),
-                        hoverinfo ="text",
-                        text = ~hover_text,
-                        hoverinfo = "text",
-                        hoverlabel = list(
-                          bgcolor = 'rgba(255,255,255,0.75)',
-                          font = list(
-                            family = "Cinzel-Regular"
+    )
+    
+    if(nrow(r$highlight_df()) != 0){
+      print("not 0")
+      
+      highlight_points <- r$highlight_df() %>%
+        dplyr::mutate(
+          assigned_colour = colours[kmeans_topic_title],
+          hover_text = 
+            paste0(
+              "<span style='display: inline-block; background-color: grey; padding: 10px; border-radius: 10px;width: 200px; text-align: center;'>",
+              "<i>", "\"", text_with_breaks, "\"", "</i> - @", sender_screen_name, "<br><br>",
+              "<b><span style='color:", "#000000",
+              # adjust_colour_darker(assigned_colour, og_val = 1), 
+              ";'>", kmeans_topic_title, "</span></b>",
+              "</span>"))
+      
+      p <-  p %>%
+        plotly::add_trace(data = highlight_points,
+                          x = ~V1, y = ~V2,
+                          type = "scattergl",
+                          mode = "markers",
+                          key = ~universal_message_id,
+                          color = ~kmeans_topic_title,
+                          showlegend = TRUE,
+                          marker = list(opacity = 0.7, size = 10),
+                          hoverinfo ="text",
+                          text = ~hover_text,
+                          hoverinfo = "text",
+                          hoverlabel = list(
+                            bgcolor = 'rgba(255,255,255,0.75)',
+                            font = list(
+                              family = "Cinzel-Regular"
+                            )
                           )
-                        )
-      ) %>%
+        )
+      
+      
+    } 
+    
+    p <- p %>%
       plotly::add_trace(data = grey_points,
                         x = ~V1, y = ~V2,
                         type = "scattergl",

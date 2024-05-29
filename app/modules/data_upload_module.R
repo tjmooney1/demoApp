@@ -36,7 +36,7 @@ dataUploadServer <- function(id, r){
     
     
     df <- reactive({
-      # data <- readr::read_rds(here::here("app/data/cosmetic_data.rds"))
+      # data <- readr::read_rds(here::here("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_df.rds"))
       
       file <- googledrive::drive_get(paste0("for_app/", category(), "_df.rds"))
       temp_file <- tempfile(fileext = ".rds")

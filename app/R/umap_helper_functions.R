@@ -44,7 +44,7 @@ createUmap <- function(r){
   colours <- viridis::viridis(n = length(topics), begin = 0, end = 0.92, option = "D", direction = 1)
   names(colours) <- unique(topics)
 
-  adjusted_colours_lighter_0.6 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
+  # adjusted_colours_lighter_0.6 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.6)) ## for points
   adjusted_colours_lighter_0.05 <- purrr::map_chr(colours, ~adjust_colour_lighter(.x, og_val = 0.05))
   adjusted_colours_darker_1 <- purrr::map_chr(colours, ~adjust_colour_darker(.x, og_val = 1)) ## for labels
   # ----
@@ -68,13 +68,12 @@ createUmap <- function(r){
   # ----
 
   # plot ----
-  sysfonts::font_add(family = "Cinzel-Regular", regular = "/Users/aoiferyan/Library/Fonts/Cinzel-Regular.ttf")
+  # sysfonts::font_add(family = "Cinzel-Regular", regular = "/Users/aoiferyan/Library/Fonts/Cinzel-Regular.ttf")
   
   if(is.null(r$highlight_df)){
     
     p <- r$df() %>%
       dplyr::mutate(
-        # text_with_breaks = sapply(text, insert_line_breaks),
                     assigned_colour = colours[kmeans_topic_title],
                     hover_text = 
                       paste0(
@@ -107,10 +106,9 @@ createUmap <- function(r){
                       source = "umap_plot"
       )
   } else {
-    grey_points <- r$highlight_df()[r$highlight_df()$highlighted == FALSE, ] 
-    highlight_points <- r$highlight_df()[r$highlight_df()$highlighted == TRUE, ] %>%
+    grey_points <- r$grey_df()
+    highlight_points <- r$highlight_df() %>%
       dplyr::mutate(
-        # text_with_breaks = sapply(text, insert_line_breaks),
                     assigned_colour = colours[kmeans_topic_title],
                     hover_text = 
                       paste0(

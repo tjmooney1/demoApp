@@ -40,11 +40,6 @@ searchServer <- function(id, r) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    # example_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.csv")
-    # 
-    # multi_qa_matrix_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings_quant.csv") %>%
-    #                                                as.matrix()
-    
     example_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.rds")
 
     multi_qa_matrix_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings.rds") %>%
@@ -62,31 +57,16 @@ searchServer <- function(id, r) {
     
     observeEvent(input$update_plot, {
       
-      keyword_search_term <- reactive({
+      keyword_search <- reactive({
         shiny::validate(
           shiny::need(grepl("^[a-zA-Z0-9 ]*$", input$search_term), "Invalid characters detected! Please use only alphanumeric characters and spaces.")
         )
         
         r$df() %>%
-          dplyr::filter(grepl(text_clean, input$search_term, ignore.case = TRUE)) %>%
-          dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
+          dplyr::filter(grepl(input$search_term, text_clean, ignore.case = TRUE))
+          # dplyr::select(text_with_breaks, highlighted, V1, V2, universal_message_id, sender_screen_name, topic, topic_title)
 
       })
-      
-      print(head(keyword_search_term))
-      
-      
-
-      print(input$search_term)
-      print(input$semantic_sim_threshold)
-      # semantic_similarity_output <- quant_dot_product_threshold_sentence(
-      #   reference_statement = input$search_term,
-      #   dot_prod_threshold = input$dot_prod_threshold,
-      #   embedding_model = "multi-qa-mpnet-base-cos-v1",
-      #   sentence_matrix = multi_qa_matrix_sentences,
-      #   df = example_sentences
-      # ) %>% 
-      #   process_sentences_quant(example_sentences)
       
       semantic_similarity_output <- cosine_calculation_threshold_sentence(
         reference_statement = input$search_term,
@@ -99,7 +79,21 @@ searchServer <- function(id, r) {
       ) %>% 
         process_sentences(example_sentences)
       
-      r$highlight_df <- shiny::reactive({semantic_similarity_output})
+      r$highlight_df <- shiny::reactive({
+     
+        semantic_similarity_output %>%
+          dplyr::filter(highlighted == TRUE) %>%
+          dplyr::bind_rows(keyword_search()) %>%
+          dplyr::distinct(universal_message_id, .keep_all = TRUE) 
+          
+        })
+      
+      r$grey_df <- shiny::reactive(
+        
+        r$df() %>%
+          dplyr::anti_join(r$highlight_df(), by = "universal_message_id")
+      )
+      
 
     })
     

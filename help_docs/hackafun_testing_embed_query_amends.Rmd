@@ -1,0 +1,38 @@
+---
+title: "embed_query_function_test"
+author: "Tim Mooney"
+date: "2024-05-28"
+output: html_document
+---
+
+# Overview
+- 
+
+libraries needed
+```{r}
+library(tidyverse)
+library(shiny)
+library(httr2)
+library(jsonlite)
+```
+
+# Data
+#### Load Dummy Data
+load some dummy data to test the app with!
+```{r}
+example_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.rds")
+
+multi_qa_matrix_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings.rds") %>%
+      as.matrix()
+```
+
+#### Test Function
+```{r}
+semantic_similarity_output <- cosine_calculation_threshold_sentence(
+        reference_statement = "Art",
+        cosine_sim_threshold = 0.5,
+        embedding_model = "multi-qa-mpnet-base-cos-v1",
+        sentence_matrix = multi_qa_matrix_sentences,
+        df = example_sentences
+      ) 
+```

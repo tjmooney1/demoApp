@@ -229,7 +229,7 @@ for (i in 1:nrow(cluster_lookup)) {
 pp3
 ```
 
-Some cgpt aided zooming with labels:
+Some gpt aided zooming with labels:
 ```{r setup, include=FALSE}
 library(plotly)
 library(tibble)
@@ -239,7 +239,7 @@ library(htmlwidgets)
 
 set.seed(1234)
 
-n = 10000
+n = 5000
 data <- tibble(
   x = rnorm(n, mean = 4, sd = 1),
   y = rnorm(n, mean = 4.5, sd = 1.2)
@@ -306,7 +306,7 @@ annotations_zoomed_out <- lapply(1:nrow(cluster_lookup), function(i) {
     y = cluster_lookup$centroid_y[i],
     text = cluster_lookup$label_zoomed_out[i],
     showarrow = FALSE,
-    font = list(size = 24, family = "helvetica", color = colors[as.numeric(cluster_lookup$cluster[i])])
+    font = list(size = 24, family = "helvetica", color = "black")
   )
 })
 
@@ -329,20 +329,20 @@ js_code <- sprintf("
 
         if (zoomLevel < 2 && !currentZoomedOut) {
           newAnnotations = [
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } }
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } }
           ];
           currentZoomedOut = true;
         } else if (zoomLevel >= 2 && currentZoomedOut) {
           newAnnotations = [
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } },
-            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: '%s' } }
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } },
+            { x: %f, y: %f, text: '%s', showarrow: false, font: { size: 24, family: 'helvetica', color: 'black' } }
           ];
           currentZoomedOut = false;
         }
@@ -352,16 +352,16 @@ js_code <- sprintf("
     });
   }
 ",
-                   cluster_lookup$centroid_x[1], cluster_lookup$centroid_y[1], cluster_lookup$label_zoomed_out[1], colors[1],
-                   cluster_lookup$centroid_x[2], cluster_lookup$centroid_y[2], cluster_lookup$label_zoomed_out[2], colors[2],
-                   cluster_lookup$centroid_x[3], cluster_lookup$centroid_y[3], cluster_lookup$label_zoomed_out[3], colors[3],
-                   cluster_lookup$centroid_x[4], cluster_lookup$centroid_y[4], cluster_lookup$label_zoomed_out[4], colors[4],
-                   cluster_lookup$centroid_x[5], cluster_lookup$centroid_y[5], cluster_lookup$label_zoomed_out[5], colors[5],
-                   cluster_lookup$label_zoomed_in_x[1], cluster_lookup$label_zoomed_in_y[1], cluster_lookup$label_zoomed_in[1], colors[1],
-                   cluster_lookup$label_zoomed_in_x[2], cluster_lookup$label_zoomed_in_y[2], cluster_lookup$label_zoomed_in[2], colors[2],
-                   cluster_lookup$label_zoomed_in_x[3], cluster_lookup$label_zoomed_in_y[3], cluster_lookup$label_zoomed_in[3], colors[3],
-                   cluster_lookup$label_zoomed_in_x[4], cluster_lookup$label_zoomed_in_y[4], cluster_lookup$label_zoomed_in[4], colors[4],
-                   cluster_lookup$label_zoomed_in_x[5], cluster_lookup$label_zoomed_in_y[5], cluster_lookup$label_zoomed_in[5], colors[5]
+                   cluster_lookup$centroid_x[1], cluster_lookup$centroid_y[1], cluster_lookup$label_zoomed_out[1],
+                   cluster_lookup$centroid_x[2], cluster_lookup$centroid_y[2], cluster_lookup$label_zoomed_out[2],
+                   cluster_lookup$centroid_x[3], cluster_lookup$centroid_y[3], cluster_lookup$label_zoomed_out[3],
+                   cluster_lookup$centroid_x[4], cluster_lookup$centroid_y[4], cluster_lookup$label_zoomed_out[4],
+                   cluster_lookup$centroid_x[5], cluster_lookup$centroid_y[5], cluster_lookup$label_zoomed_out[5],
+                   cluster_lookup$label_zoomed_in_x[1], cluster_lookup$label_zoomed_in_y[1], cluster_lookup$label_zoomed_in[1],
+                   cluster_lookup$label_zoomed_in_x[2], cluster_lookup$label_zoomed_in_y[2], cluster_lookup$label_zoomed_in[2],
+                   cluster_lookup$label_zoomed_in_x[3], cluster_lookup$label_zoomed_in_y[3], cluster_lookup$label_zoomed_in[3],
+                   cluster_lookup$label_zoomed_in_x[4], cluster_lookup$label_zoomed_in_y[4], cluster_lookup$label_zoomed_in[4],
+                   cluster_lookup$label_zoomed_in_x[5], cluster_lookup$label_zoomed_in_y[5], cluster_lookup$label_zoomed_in[5]
 )
 
 # Attach the JavaScript code using onRender

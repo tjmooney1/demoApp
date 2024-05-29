@@ -13,13 +13,15 @@ options(shiny.port = 7775)
 options(shiny.host = "127.0.0.1")
 
 # Source Business logic/helper functions
-source(here("app/R/helper_functions.R"))
+source(here("app/R/umap_helper_functions.R"))
 source(here("app/R/semantic_search_helper_functions.R"))
 source(here("app/R/html_embed.R"))# Source modules
 
+# source(here("app/www/x_logo.png"))
+
 source(here("app/modules/umap_module.R"))
 source(here("app/modules/data_upload_module.R"))
-source(here("app/modules/semantic_search_module.R"))
+source(here("app/modules/search_module.R"))
 source(here("app/modules/embed_texts_module.R"))
 
 # Source App Files
@@ -30,7 +32,7 @@ options(
   # whenever there is one account token found, use the cached token
   gargle_oauth_email = TRUE,
   # specify auth tokens should be stored in a hidden directory ".secrets"
-  gargle_oauth_cache = "app/.secrets"
+  gargle_oauth_cache = ".secrets"
 )
 
 
@@ -38,5 +40,5 @@ options(
 if(interactive()){
   shinyApp(ui, server)
 } else {
-  runApp(here::here("app"))
+  shiny::runApp(here::here("app"))
 }

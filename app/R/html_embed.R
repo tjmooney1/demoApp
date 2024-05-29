@@ -38,12 +38,29 @@ create_tweet_embed <- function(permalink) {
   
   tweet_blockquote <- get_tweet_blockquote(screen_name = tweet_screen_name, status_id = tweet_id)
   
-  html <- paste0(
-    embedding_style$start_div,
-    tweet_blockquote, 
-    embedding_style$end_div)
+  # x_logo <-  shiny::tags$img(src ="x_logo.png", align = "left",
+  #                            width = "36px", height = "30px",
+  #                            style = "margin-left: 20px; margin-right: 10px")
+
+  x_logo <-  shiny::tags$img(src ="x_logo.png", align = "right",
+                             width = "36px", height = "30px",
+                             style = "margin-right: 20px; margin-botom: 50px")
+ 
+  if (!is.null(tweet_blockquote)) {
+    html <- paste0(
+      embedding_style$start_div,
+      tweet_blockquote, 
+      x_logo,
+      embedding_style$end_div)
+    
+    return(shiny::HTML(html))
+  } else {
+    
+    return(NULL)
+  }
   
-  return(shiny::HTML(html))
+  
+  
 }
 
 
@@ -94,7 +111,7 @@ embed_switch <- function(permalink) {
     source,
     "reddit" = create_reddit_embed(permalink),
     "instagram" = create_instagram_embed(permalink),
-    "twitter" = create_tweet_embed(permalink)
+    "x" = create_tweet_embed(permalink)
   )
   
   return(embed )

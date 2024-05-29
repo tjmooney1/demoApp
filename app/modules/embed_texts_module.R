@@ -13,13 +13,13 @@ embed_text_server <- function(id, r) {
     selected_texts <- shiny::reactive({
       req(shiny::isTruthy(r$selected_range))
       
-      print(r$selected_range)
+      # print(r$selected_range)
       
       permalinks <- r$df() %>%
         dplyr::filter(universal_message_id %in% r$selected_range) %>%
         dplyr::pull(permalink)
       
-      permalinks <- reverse_link_click_html(permalinks)
+      # permalinks <- reverse_link_click_html(permalinks)
 
       return(permalinks)
     })
@@ -29,9 +29,20 @@ embed_text_server <- function(id, r) {
         validate("Select some data first!")
       }
       
-      lapply(selected_texts(), embed_switch)
+      # take a sample to speed up rendering
+      if(length(selected_texts() > 15)){
+        sample_selected <- selected_texts()[sample(length(selected_texts()), 15)]
+      } else {
+        sample_selected <- selected_texts()
+      }
+      
+      embedded_posts <- lapply(sample_selected, embed_switch)
+      Filter(Negate(is.null), embedded_posts)
+      
     })
-   
+    
+  
+
     output$embeddedTexts <- renderUI({
       do.call(bslib::layout_column_wrap, c(width = 1/3, permalink_embeds()))
     })

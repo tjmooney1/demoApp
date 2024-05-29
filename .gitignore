@@ -7,6 +7,6 @@
 *_files*
 .Renviron
 .DS_Store
-
 .DS_Store
-app/.secrets/
+.secrets/
+.secrets

@@ -2607,13 +2607,13 @@
     "modules/embed_texts_module.R": {
       "checksum": "723e00cc8cf1f81d910eeefa4457e314"
     },
-    "modules/semantic_search_module.R": {
+    "modules/search_module.R": {
       "checksum": "08f81c08a6f1fa708e9fb19872bd5b40"
     },
     "modules/umap_module.R": {
       "checksum": "bef03d11df7fe6d49a1b6376e08f191f"
     },
-    "R/helper_functions.R": {
+    "R/umap_helper_functions.R": {
       "checksum": "fcedb9fc85691835a637857ffae4b3c0"
     },
     "R/html_embed.R": {

@@ -6,10 +6,10 @@ ui <- bslib::page_fillable(
   
   theme = bslib::bs_theme(
     bootswatch = "sandstone",
-    heading_font = bslib::font_face(family = "Cinzel-Regular",
-                                    src = "fonts/Cinzel-Regular.ttf"),
-    base_font = bslib::font_face(family = "Cinzel-SemiBold",
-                                 src = "fonts/Cinzel-SemiBold.ttf")
+    heading_font = bslib::font_face(family = "Cinzel-SemiBold",
+                                    src = "fonts/Cinzel-SemiBold.ttf"),
+    base_font = bslib::font_face(family = "Cinzel-Regular",
+                                 src = "fonts/Cinzel-Regular.ttf")
   ),
 
       bslib::layout_sidebar(

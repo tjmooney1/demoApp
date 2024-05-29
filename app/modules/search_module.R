@@ -1,15 +1,37 @@
 searchUi <- function(id) {
+  ns <- shiny::NS(id)
   
   shiny::tagList(
-    # sidebarPanel(
-    # shiny::textInput(NS(id, "semantic_search_term"), "Enter neural search term:", placeholder = "Ai Art"),
-    # shiny::numericInput(NS(id, "cosine_sim_thresholds"), "Cosine similarity threshold", value = 0.3, min = 0, max = 1, step = 0.1),
-
-    shiny::textInput(NS(id, "search_term"), "Enter search term:", placeholder = "AI art"),
-    shiny::numericInput(NS(id, "dot_prod_threshold"), "Dot product threshold", value = 5, min = 0, max = 10, step = 0.2),
-    # shiny::textInput(NS(id, "keyword_search_term"), "Enter keyword search term:", placeholder = "Ai and Art"),
-    shiny::actionButton(NS(id, "update_plot"), "Update Plot")
-    # )
+    shiny::textInput(NS(id, "search_term"), "Enter search term:", placeholder = "face"),
+    htmltools::tags$style(HTML("
+    .irs-from, .irs-to, .irs-min, .irs-max, .irs-single {
+      visibility: hidden !important;
+    }"
+                               )),
+    htmltools::div(
+      style = "position: relative; margin-top: 20px; width: 200px;",
+      shiny::sliderInput(ns("semantic_sim_threshold"), 
+                  label = NULL,
+                  min = 0, max = 1, value = 0.5, ticks = FALSE),
+      htmltools::div( # slider title
+        style = "position: absolute; top: -15px; left: 20%; transform: translateX(-30%);",
+        "Term Similarity"
+      ),
+      htmltools::div( # slider lower bound label
+        style = "position: absolute; top: 45px; left: 0; transform: translateX(-20%); font-family: Cinzel-Regular; src: fonts/Cinzel-Regular.ttf;",
+        "Low"
+      ),
+      htmltools::div( #  slider halfway label
+        style = "position: absolute; top: 45px; left: 50%; transform: translateX(-50%); font-family: Cinzel-Regular; src: fonts/Cinzel-Regular.ttf;",
+        "Medium"
+      ),
+      htmltools::div( # slider upper bound label
+        style = "position: absolute; top: 45px; left: 100%; transform: translateX(-70%); font-family: Cinzel-Regular; src: fonts/Cinzel-Regular.ttf;",
+        "High"
+        )
+      ),
+  htmltools::tags$div(style = "margin-top: 10px; margin-bottom: 10px;"),   # break before action button
+  shiny::actionButton(NS(id, "update_plot"), "Update Plot")
   )
 }
 
@@ -55,7 +77,8 @@ searchServer <- function(id, r) {
       
       
 
-      print("searching")
+      print(input$search_term)
+      print(input$semantic_sim_threshold)
       # semantic_similarity_output <- quant_dot_product_threshold_sentence(
       #   reference_statement = input$search_term,
       #   dot_prod_threshold = input$dot_prod_threshold,
@@ -66,10 +89,10 @@ searchServer <- function(id, r) {
       #   process_sentences_quant(example_sentences)
       
       semantic_similarity_output <- cosine_calculation_threshold_sentence(
-        # reference_statement = input$search_term,
-        # cosine_sim_threshold = input$dot_prod_threshold,
-        reference_statement = "face",
-        cosine_sim_threshold = 0.5,
+        reference_statement = input$search_term,
+        cosine_sim_threshold = input$semantic_sim_threshold,
+        # reference_statement = "face",
+        # cosine_sim_threshold = 0.5,
         embedding_model = "multi-qa-mpnet-base-cos-v1",
         sentence_matrix = multi_qa_matrix_sentences,
         df = example_sentences

@@ -3,3 +3,4 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 help_docs/
+^\.secrets$

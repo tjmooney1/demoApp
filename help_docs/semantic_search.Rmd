@@ -992,3 +992,51 @@ shinyApp(ui, server)
 ```
 
 
+# looking at a hacked sliderInput
+```{r}
+ui <- fluidPage(
+  tags$style(HTML("
+    @font-face {
+      font-family: 'Cinzel-Regular';
+      src: url('./app/fonts/Cinzel-Regular.ttf') format('truetype');
+    }
+    .slider-label {
+      font-family: 'Cinzel-Regular';
+      font-size: 14px;
+    }
+  ")),
+  # Custom slider with labels
+  div(
+    style = "width: 300px; position: relative;",
+    # Slider input
+    sliderInput("slider", "Slider:", min = 0, max = 1, value = 0.5, 
+                ticks = FALSE
+                ),
+    # Low label
+    tags$div(
+      style = "position: absolute; top: 10px; left: 0; transform: translateX(-50%);",
+      "Low"
+    ),
+    # Medium label
+    tags$div(
+      style = "position: absolute; top: 10px; left: 50%; transform: translateX(-50%);",
+      "Medium"
+    ),
+    # High label
+    tags$div(
+      style = "position: absolute; top: 10px; left: 100%; transform: translateX(-50%);",
+      "High"
+    )
+  ),
+  # Display selected value
+  verbatimTextOutput("value")
+)
+
+server <- function(input, output) {
+  output$value <- renderText({
+    paste("Selected value:", input$slider)
+  })
+}
+
+shinyApp(ui, server)
+```

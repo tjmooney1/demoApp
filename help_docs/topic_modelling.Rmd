@@ -414,6 +414,7 @@ beauty_topics <- beauty_hdb %>%
 
 beauty_topics %>%
   write_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/cosmetic_data/cosmetic_kmeans_and_hdb_topics.csv")
+
 ```
 
 Now I should maybe tokenise
@@ -442,55 +443,34 @@ cosmetic_sentence_embeddings <- readr::read_csv(
 cosmetic_sentence_embeddings %>% 
   readr::write_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings.rds")
 ```
-<!-- ```{r} -->
-<!-- topic_lookup <- topic_summary %>%  -->
-<!--   dplyr::select(Topic, representation) -->
 
-<!-- beauty_topics <- beauty_clean %>% -->
-<!--   dplyr::mutate(topic = model$topics_, -->
-<!--                 text_with_breaks = sapply(text, insert_line_breaks)) %>% -->
-<!--   dplyr::left_join(topic_lookup,  -->
-<!--                    by = dplyr::join_by("topic" == "Topic")) %>% -->
-<!--   dplyr::rename(topic_title = representation) %>% -->
-<!--   dplyr::select(-c(".document%%num_cuts", "V1", "V2")) %>% -->
-<!--   cbind(reduced_embeddings2d) %>%  -->
-<!--   dplyr::rename(V1 = `0`, V2 = `1`) %>% -->
-<!--   dplyr::mutate(rowid = dplyr::row_number(), -->
-<!--                 topic_title = dplyr::case_when( -->
-<!--                   topic == 0 ~ "Hair Care", -->
-<!--                   topic == 1 ~ "Moisturising\Skincare", -->
-<!--                   topic == 2 ~ "Perfumes", -->
-<!--                   topic == 3 ~ "Social Issues", -->
-<!--                   topic == 4 ~ "Colognes", -->
-<!--                   topic == 5 ~ "Skincare for\nAcne/Wrinkles", -->
-<!--                   topic == 6 ~ "Skin Conditions", -->
-<!--                   topic == 7 ~ "Feeling Radiant", -->
-<!--                   topic == 8 ~ "Designers", -->
-<!--                   topic == 9 ~ "Makeup", -->
-<!--                   TRUE ~ NA)) -->
+Fixing topic titles in sentence df (saved as list and so not present when reuploaded)
+```{r}
+cosmetic_data <- readr::read_rds(here::here("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_df.rds"))
 
-<!-- beauty_topics %>% -->
-<!--   readr::write_rds("app/data/cosmetic_data.rds") -->
-<!-- ``` -->
+cosmetic_sentences <- readr::read_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.rds")
 
-<!-- # Quick edit of Jamie's sentence df and save to repo -->
+cosmetic_topic_info <- cosmetic_data %>%
+  dplyr::select(kmeans_topic, kmeans_topic_title, hdb_topic, hdb_topic_title, universal_message_id)
 
-<!-- ```{r} -->
-<!-- cosmetic_sentences <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.csv") -->
+cosmetic_sentence_topics <- cosmetic_sentences %>%
+  select(-c(kmeans_topic, kmeans_topic_title, hdb_topic, hdb_topic_title)) %>%
+  dplyr::left_join(cosmetic_topic_info, by = "universal_message_id")
 
-<!-- cosmetic_sentences_embeddings <- readr::read_csv("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences_embeddings_quant.csv") -->
+# quick check
+cosmetic_sentence_topics %>%
+  distinct(kmeans_topic, kmeans_topic_title)
 
-<!-- cosmetic_sentences %>% colnames() -->
+cosmetic_sentence_topics %>%
+  distinct(hdb_topic, hdb_topic_title)
 
-<!-- cosmetic_sentences_topics <- cosmetic_sentences %>%  -->
-<!--   dplyr::select(-c("V1", "V2")) %>% -->
-<!--   dplyr::left_join(beauty_topics %>%  -->
-<!--                      dplyr::select(universal_message_id, topic, topic_title, V1, V2), -->
-<!--                    by = "universal_message_id")  -->
+nrow(cosmetic_sentence_topics) == nrow(cosmetic_sentences)
 
-<!-- cosmetic_sentences_topics %>% -->
-<!--   readr::write_rds("app/data/cosmetic_sentences.rds") -->
+cosmetic_data %>%
+  distinct(kmeans_topic, kmeans_topic_title)
 
-<!-- cosmetic_sentences_embeddings %>% -->
-<!--   readr::write_rds("app/data/cosmetic_sentences_embeddings.rds") -->
-<!-- ``` -->
+cosmetic_data %>%
+  distinct(hdb_topic, hdb_topic_title)
+
+cosmetic_sentence_topics %>% readr::write_rds("~/Google Drive/My Drive/Share_Clients/data_science_project_work/hackafun/data/cleaned_data/for_app/cosmetic_sentences.rds")
+```
